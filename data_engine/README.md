@@ -7,6 +7,7 @@ Two different kinds of inputs can be used for training the video description mod
 1) Raw video frames (see section 'Image lists generation')
 2) Features from video frames (see section 'Image features generation')
 
+Additionally, we can train a model for temporally-linked samples, in that case we have to run an additional pre-processing script.
 
 ## Folder structure
 
@@ -80,3 +81,14 @@ This step will be needed if we are using image features only. The number of feat
             Containing the counts of vectors per video.
         The output .txt files will be stored in ./Annotations/[name_feat]/. And the .npy files in ./Features/[name_feat]/
             
+## Temporally-linked samples
+
+This step will be needed if we are using temporally-linked samples.
+
+    Script name:
+        generate_link_lists.py
+    Description:
+        Stores a separate list .Annotations/[split_list]_link_samples.txt with the indices to the previous samples in the temporal link.
+    Output:
+        - A file per split with the suffix _link_samples.txt.
+          Containing the index to the previous sample in the link (or -1) if it is the first sample in the link.

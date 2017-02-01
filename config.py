@@ -7,7 +7,7 @@ def load_parameters():
     DATA_ROOT_PATH = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
 
     # preprocessed features
-    DATASET_NAME = 'EDUB-SegDesc_features'          # Dataset name (add '-linked' suffix for using
+    DATASET_NAME = 'EDUB-SegDesc_features-linked'          # Dataset name (add '-linked' suffix for using
                                                     # dataset with temporally-linked training data)
     PRE_TRAINED_DATASET_NAME = 'MSVD_features'      # Dataset name for reusing vocabulary of pre-trained model
                                                     # (only applicable if we are using a pre-trained model, default None)
@@ -39,14 +39,22 @@ def load_parameters():
                                  'test': 'Annotations/test_descriptions_counts.npy',
                                }
 
-    if '-linked' in DATASET_NAME:
-        pass
-
     # Dataset parameters
-    INPUTS_IDS_DATASET = ['video', 'state_below']   # Corresponding inputs of the dataset
-    OUTPUTS_IDS_DATASET = ['description']           # Corresponding outputs of the dataset
-    INPUTS_IDS_MODEL = ['video', 'state_below']     # Corresponding inputs of the built model
-    OUTPUTS_IDS_MODEL = ['description']             # Corresponding outputs of the built model
+    INPUTS_IDS_DATASET = ['video', 'state_below']  # Corresponding inputs of the dataset
+    OUTPUTS_IDS_DATASET = ['description']  # Corresponding outputs of the dataset
+    INPUTS_IDS_MODEL = ['video', 'state_below']  # Corresponding inputs of the built model
+    OUTPUTS_IDS_MODEL = ['description']  # Corresponding outputs of the built model
+
+
+    if '-linked' in DATASET_NAME:
+
+        LINK_SAMPLE_FILES = {'train': 'Annotations/train_link_samples.txt',     # Links index files
+                             'val': 'Annotations/val_link_samples.txt',
+                             'test': 'Annotations/test_link_samples.txt',
+                            }
+
+        INPUTS_IDS_DATASET.append('prev_caption')
+        INPUTS_IDS_DATASET.append('link_index')
 
 
     # Evaluation params
@@ -185,8 +193,9 @@ def load_parameters():
                  '_' + OPTIMIZER
 
     MODEL_NAME += EXTRA_NAME
-            
-    MODEL_NAME = 'MSVD_best_model'
+
+    PRE_TRAINED_MODEL = 'MSVD_best_model'
+    PRE_TRAINED_MODEL_STORE_PATH = 'trained_models/' + PRE_TRAINED_MODEL  + '/'
 
     STORE_PATH = 'trained_models/' + MODEL_NAME  + '/' # Models and evaluation results will be stored here
     DATASET_STORE_PATH = 'datasets/'                   # Dataset instance will be stored here

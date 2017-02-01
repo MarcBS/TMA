@@ -27,12 +27,14 @@ def train_model(params):
 
     check_params(params)
 
-    # Load data
+
+    ########### Load data
     dataset = build_dataset(params)
     params['OUTPUT_VOCABULARY_SIZE'] = dataset.vocabulary_len[params['OUTPUTS_IDS_DATASET'][0]]
+    ###########
 
 
-    # Build model
+    ########### Build model
     if(params['RELOAD'] == 0): # build new model 
         video_model = VideoDesc_Model(params,
                                       type=params['MODEL_TYPE'],
@@ -60,7 +62,7 @@ def train_model(params):
         video_model.setOutputsMapping(outputMapping)
         
     else: # resume from previously trained model
-        video_model = loadModel(params['STORE_PATH'], params['RELOAD'])
+        video_model = loadModel(params['PRE_TRAINED_MODEL_STORE_PATH'], params['RELOAD'])
         video_model.setOptimizer()
 
         if video_model.model_path != params['STORE_PATH']:
