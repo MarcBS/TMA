@@ -62,6 +62,9 @@ def train_model(params):
     else: # resume from previously trained model
         video_model = loadModel(params['STORE_PATH'], params['RELOAD'])
         video_model.setOptimizer()
+
+        if video_model.model_path != params['STORE_PATH']:
+            video_model.setName(params['MODEL_NAME'], models_path=params['STORE_PATH'], clear_dirs=False)
     ###########
 
     

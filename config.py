@@ -3,13 +3,14 @@ def load_parameters():
         Loads the defined parameters
     """
     # Input data params
-    #DATA_ROOT_PATH = '/media/HDD_2TB/DATASETS/MSVD/'            # Root path to the data
-    DATA_ROOT_PATH = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'  # Root path to the data
+    #DATA_ROOT_PATH = '/media/HDD_2TB/DATASETS/MSVD/'        # Root path to the data
+    DATA_ROOT_PATH = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
 
     # preprocessed features
-    DATASET_NAME = 'EDUB-SegDesc_features'         # Dataset name
-    PRE_TRAINED_DATASET_NAME = 'MSVD_features'     # Dataset name for reusing vocabulary of pre-trained model
-                                                   # (only applicable if we are using a pre-trained model, default None)
+    DATASET_NAME = 'EDUB-SegDesc_features'          # Dataset name (add '-linked' suffix for using
+                                                    # dataset with temporally-linked training data)
+    PRE_TRAINED_DATASET_NAME = 'MSVD_features'      # Dataset name for reusing vocabulary of pre-trained model
+                                                    # (only applicable if we are using a pre-trained model, default None)
 
     # Input data
     INPUT_DATA_TYPE = 'video-features'                          # 'video-features' or 'video'
@@ -37,7 +38,10 @@ def load_parameters():
                                  'val': 'Annotations/val_descriptions_counts.npy',
                                  'test': 'Annotations/test_descriptions_counts.npy',
                                }
-    
+
+    if '-linked' in DATASET_NAME:
+        pass
+
     # Dataset parameters
     INPUTS_IDS_DATASET = ['video', 'state_below']   # Corresponding inputs of the dataset
     OUTPUTS_IDS_DATASET = ['description']           # Corresponding outputs of the dataset

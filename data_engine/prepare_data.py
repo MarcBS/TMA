@@ -110,6 +110,7 @@ def build_dataset(params):
     # Load vocabulary-related parameters of dataset used for pre-training
     if params['PRE_TRAINED_DATASET_NAME'] is not None:
         dataset_pretrained = loadDataset(params['DATASET_STORE_PATH']+'Dataset_'+params['PRE_TRAINED_DATASET_NAME']+'.pkl')
+        ds.vocabulary = dataset_pretrained.vocabulary
         ds.vocabulary_len = dataset_pretrained.vocabulary_len
         ds.n_classes_text = dataset_pretrained.n_classes_text
 
