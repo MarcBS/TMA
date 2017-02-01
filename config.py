@@ -58,7 +58,7 @@ def load_parameters():
     TEMPERATURE = 1                               # Multinomial sampling parameter
     BEAM_SEARCH = True                            # Switches on-off the beam search procedure
     BEAM_SIZE = 10                                 # Beam size (in case of BEAM_SEARCH == True)
-    OPTIMIZED_SEARCH = True                       # Compute annotations only a single time per sample
+    OPTIMIZED_SEARCH = False                       # Compute annotations only a single time per sample
     NORMALIZE_SAMPLING = True                     # Normalize hypotheses scores according to their length
     ALPHA_FACTOR = .6                             # Normalization according to length**ALPHA_FACTOR
                                                   # (see: arxiv.org/abs/1609.08144)
@@ -104,7 +104,7 @@ def load_parameters():
 
     # Training parameters
     MAX_EPOCH = 50          # Stop when computed this number of epochs
-    BATCH_SIZE = 10         # ABiViRNet trained with BATCH_SIZE = 64
+    BATCH_SIZE = 25         # ABiViRNet trained with BATCH_SIZE = 64
 
     HOMOGENEOUS_BATCHES = False                   # Use batches with homogeneous output lengths for every minibatch (Possibly buggy!)
     PARALLEL_LOADERS = 8                          # Parallel data batch loaders
