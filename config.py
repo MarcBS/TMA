@@ -3,9 +3,13 @@ def load_parameters():
         Loads the defined parameters
     """
     # Input data params
-    DATA_ROOT_PATH = '/media/HDD_2TB/DATASETS/MSVD/'            # Root path to the data
+    #DATA_ROOT_PATH = '/media/HDD_2TB/DATASETS/MSVD/'            # Root path to the data
+    DATA_ROOT_PATH = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'  # Root path to the data
+
     # preprocessed features
-    DATASET_NAME = 'MSVD_features'                              # Dataset name
+    DATASET_NAME = 'EDUB-SegDesc_features'         # Dataset name
+    PRE_TRAINED_DATASET_NAME = 'MSVD_features'     # Dataset name for reusing vocabulary of pre-trained model
+                                                   # (only applicable if we are using a pre-trained model, default None)
 
     # Input data
     INPUT_DATA_TYPE = 'video-features'                          # 'video-features' or 'video'
@@ -100,7 +104,7 @@ def load_parameters():
 
     # Training parameters
     MAX_EPOCH = 50          # Stop when computed this number of epochs
-    BATCH_SIZE = 1         # ABiViRNet trained with BATCH_SIZE = 64
+    BATCH_SIZE = 10         # ABiViRNet trained with BATCH_SIZE = 64
 
     HOMOGENEOUS_BATCHES = False                   # Use batches with homogeneous output lengths for every minibatch (Possibly buggy!)
     PARALLEL_LOADERS = 8                          # Parallel data batch loaders
@@ -178,7 +182,7 @@ def load_parameters():
 
     MODEL_NAME += EXTRA_NAME
             
-    MODEL_NAME = 'Best_Model'
+    MODEL_NAME = 'MSVD_best_model'
 
     STORE_PATH = 'trained_models/' + MODEL_NAME  + '/' # Models and evaluation results will be stored here
     DATASET_STORE_PATH = 'datasets/'                   # Dataset instance will be stored here
@@ -187,7 +191,7 @@ def load_parameters():
     VERBOSE = 1                                        # Verbosity level
     RELOAD = 2                                         # If 0 start training from scratch, otherwise the model
                                                        # Saved on epoch 'RELOAD' will be used
-    REBUILD_DATASET = False                             # Build again or use stored instance
+    REBUILD_DATASET = True                             # Build again or use stored instance
     MODE = 'training'                                  # 'training' or 'sampling' (if 'sampling' then RELOAD must
                                                        # be greater than 0 and EVAL_ON_SETS will be used)
 

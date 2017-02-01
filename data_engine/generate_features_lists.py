@@ -2,7 +2,7 @@ import glob
 import os
 import numpy as np
 
-base_path = '/media/HDD_2TB/DATASETS/MSVD/'
+base_path = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
 path_features = 'Features'
 path_annotations = 'Annotations'
 
