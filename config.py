@@ -3,11 +3,11 @@ def load_parameters():
         Loads the defined parameters
     """
     # Input data params
-    #DATA_ROOT_PATH = '/media/HDD_2TB/DATASETS/MSVD/'        # Root path to the data
-    DATA_ROOT_PATH = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
+    DATA_ROOT_PATH = '/media/HDD_2TB/DATASETS/EDUB-SegDesc/'        # Root path to the data
+    #DATA_ROOT_PATH = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
 
     # preprocessed features
-    DATASET_NAME = 'EDUB-SegDesc_features'          # Dataset name (add '-linked' suffix for using
+    DATASET_NAME = 'EDUB-SegDesc_features-linked'          # Dataset name (add '-linked' suffix for using
                                                     # dataset with temporally-linked training data)
     PRE_TRAINED_DATASET_NAME = 'MSVD_features'      # Dataset name for reusing vocabulary of pre-trained model
                                                     # (only applicable if we are using a pre-trained model, default None)
@@ -55,8 +55,8 @@ def load_parameters():
 
         INPUTS_IDS_DATASET.append('prev_caption')
         INPUTS_IDS_DATASET.append('link_index')
-
-
+        INPUTS_IDS_MODEL.append('prev_caption')
+        INPUTS_IDS_MODEL.append('link_index')
     # Evaluation params
     METRICS = ['coco']  # Metric used for evaluating model after each epoch (leave empty if only prediction is required)
     EVAL_ON_SETS = ['val', 'test']                # Possible values: 'train', 'val' and 'test' (external evaluator)
