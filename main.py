@@ -6,8 +6,9 @@ from data_engine.prepare_data import build_dataset
 from viddesc_model import VideoDesc_Model
 
 from keras_wrapper.cnn_model import loadModel, saveModel
-from keras_wrapper.extra.callbacks import PrintPerformanceMetricOnEpochEndOrEachNUpdates, PrintPerformanceMetricOnEpochEnd, PrintPerformanceMetricEachNUpdates, SampleEachNUpdates
+from keras_wrapper.extra.callbacks import PrintPerformanceMetricOnEpochEndOrEachNUpdates, SampleEachNUpdates
 from keras_wrapper.extra.read_write import dict2pkl, list2file
+from keras_wrapper.extra.evaluation import select as selectMetric
 
 import sys
 import ast
@@ -162,7 +163,7 @@ def apply_Video_model(params):
             # Evaluate on the chosen metric
             extra_vars[s] = dict()
             extra_vars[s]['references'] = dataset.extra_variables[s][params['OUTPUTS_IDS_DATASET'][0]]
-            metrics = utils.evaluation.select[metric](
+            metrics = selectMetric[metric](
                 pred_list=predictions,
                 verbose=1,
                 extra_vars=extra_vars,
@@ -246,11 +247,7 @@ def buildCallbacks(params, model, dataset):
         # Write some samples
         extra_vars = {'language': params.get('TRG_LAN', 'en'), 'n_parallel_loaders': params['PARALLEL_LOADERS']}
         vocab = dataset.vocabulary[params['OUTPUTS_IDS_DATASET'][0]]['idx2words']
-        for s in params['EVAL_ON_SETS']:
-            extra_vars[s] = dict()
-            extra_vars[s]['references'] = dataset.extra_variables[s][params['OUTPUTS_IDS_DATASET'][0]]
-            extra_vars[s]['tokenize_f'] = eval('dataset.' + params['TOKENIZATION_METHOD'])
-        if params['BEAM_SIZE']:
+        if params['BEAM_SEARCH']:
             extra_vars['beam_size'] = params['BEAM_SIZE']
             extra_vars['maxlen'] = params['MAX_OUTPUT_TEXT_LEN_TEST']
             extra_vars['optimized_search'] = params['OPTIMIZED_SEARCH']

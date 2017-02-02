@@ -7,7 +7,7 @@ def load_parameters():
     DATA_ROOT_PATH = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
 
     # preprocessed features
-    DATASET_NAME = 'EDUB-SegDesc_features-linked'          # Dataset name (add '-linked' suffix for using
+    DATASET_NAME = 'EDUB-SegDesc_features'          # Dataset name (add '-linked' suffix for using
                                                     # dataset with temporally-linked training data)
     PRE_TRAINED_DATASET_NAME = 'MSVD_features'      # Dataset name for reusing vocabulary of pre-trained model
                                                     # (only applicable if we are using a pre-trained model, default None)
@@ -79,7 +79,7 @@ def load_parameters():
     SAMPLE_ON_SETS = ['train', 'val']             # Possible values: 'train', 'val' and 'test'
     N_SAMPLES = 5                                 # Number of samples generated
     START_SAMPLING_ON_EPOCH = 1                   # First epoch where the model will be evaluated
-    SAMPLE_EACH_UPDATES = 450                     # Sampling frequency (default 450)
+    SAMPLE_EACH_UPDATES = 50                     # Sampling frequency (default 450)
 
     # Word representation params
     TOKENIZATION_METHOD = 'tokenize_icann'        # Select which tokenization we'll apply:
@@ -116,7 +116,7 @@ def load_parameters():
 
     # Training parameters
     MAX_EPOCH = 50          # Stop when computed this number of epochs
-    BATCH_SIZE = 25         # ABiViRNet trained with BATCH_SIZE = 64
+    BATCH_SIZE = 1         # ABiViRNet trained with BATCH_SIZE = 64
 
     HOMOGENEOUS_BATCHES = False                   # Use batches with homogeneous output lengths for every minibatch (Possibly buggy!)
     PARALLEL_LOADERS = 8                          # Parallel data batch loaders
@@ -125,12 +125,15 @@ def load_parameters():
 
     # Early stop parameters
     EARLY_STOP = True                             # Turns on/off the early stop protocol
-    PATIENCE = 10                                 # We'll stop if the val STOP_METRIC does not improve after this
+    PATIENCE = 15                                 # We'll stop if the val STOP_METRIC does not improve after this
                                                   # number of evaluations
     STOP_METRIC = 'Bleu_4'                        # Metric for the stop
 
     # Model parameters
-    MODEL_TYPE = 'ArcticVideoCaptionWithInit'
+    MODEL_TYPE = 'TemporallyLinkedVideoDescriptionAtt'       # 'ArcticVideoCaptionWithInit'
+                                                    # 'TemporallyLinkedVideoDescriptionNoAtt'
+                                                    # 'TemporallyLinkedVideoDescriptionAtt'
+
     RNN_TYPE = 'LSTM'                             # RNN unit type ('LSTM' and 'GRU' supported)
 
     # Input text parameters
@@ -194,7 +197,7 @@ def load_parameters():
 
     MODEL_NAME += EXTRA_NAME
 
-    PRE_TRAINED_MODEL = 'MSVD_best_model'
+    PRE_TRAINED_MODEL = MODEL_NAME #'MSVD_best_model'
     PRE_TRAINED_MODEL_STORE_PATH = 'trained_models/' + PRE_TRAINED_MODEL  + '/'
 
     STORE_PATH = 'trained_models/' + MODEL_NAME  + '/' # Models and evaluation results will be stored here
@@ -202,7 +205,7 @@ def load_parameters():
 
     SAMPLING_SAVE_MODE = 'list'                        # 'list' or 'vqa'
     VERBOSE = 1                                        # Verbosity level
-    RELOAD = 2                                         # If 0 start training from scratch, otherwise the model
+    RELOAD = 0                                        # If 0 start training from scratch, otherwise the model
                                                        # Saved on epoch 'RELOAD' will be used
     REBUILD_DATASET = True                             # Build again or use stored instance
     MODE = 'training'                                  # 'training' or 'sampling' (if 'sampling' then RELOAD must
