@@ -204,15 +204,16 @@ def buildCallbacks(params, model, dataset):
             extra_vars[s] = dict()
             extra_vars[s]['references'] = dataset.extra_variables[s][params['OUTPUTS_IDS_DATASET'][0]]
         if params['BEAM_SIZE']:
-            extra_vars['beam_size'] = params['BEAM_SIZE']
-            extra_vars['maxlen'] = params['MAX_OUTPUT_TEXT_LEN_TEST']
-            extra_vars['optimized_search'] = params['OPTIMIZED_SEARCH']
+            extra_vars['beam_size'] = params.get('BEAM_SIZE', 6)
+            extra_vars['state_below_index'] =  params.get('BEAM_SEARCH_COND_INPUT', -1)
+            extra_vars['maxlen'] = params.get('MAX_OUTPUT_TEXT_LEN_TEST', 30)
+            extra_vars['optimized_search'] = params.get('OPTIMIZED_SEARCH', True)
             extra_vars['model_inputs'] = params['INPUTS_IDS_MODEL']
             extra_vars['model_outputs'] = params['OUTPUTS_IDS_MODEL']
             extra_vars['dataset_inputs'] = params['INPUTS_IDS_DATASET']
             extra_vars['dataset_outputs'] = params['OUTPUTS_IDS_DATASET']
-            extra_vars['normalize'] =  params['NORMALIZE_SAMPLING']
-            extra_vars['alpha_factor'] =  params['ALPHA_FACTOR']
+            extra_vars['normalize'] =  params.get('NORMALIZE_SAMPLING', False)
+            extra_vars['alpha_factor'] =  params.get('ALPHA_FACTOR', 1.)
             input_text_id = None
             vocab_src = None
 

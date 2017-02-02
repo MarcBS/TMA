@@ -9,7 +9,7 @@ def load_parameters():
     # preprocessed features
     DATASET_NAME = 'EDUB-SegDesc_features-linked'          # Dataset name (add '-linked' suffix for using
                                                     # dataset with temporally-linked training data)
-    PRE_TRAINED_DATASET_NAME = 'MSVD_features'      # Dataset name for reusing vocabulary of pre-trained model
+    PRE_TRAINED_DATASET_NAME = None#'MSVD_features'      # Dataset name for reusing vocabulary of pre-trained model
                                                     # (only applicable if we are using a pre-trained model, default None)
 
     # Input data
@@ -69,8 +69,9 @@ def load_parameters():
     SAMPLING = 'max_likelihood'                   # Possible values: multinomial or max_likelihood (recommended)
     TEMPERATURE = 1                               # Multinomial sampling parameter
     BEAM_SEARCH = True                            # Switches on-off the beam search procedure
-    BEAM_SIZE = 10                                 # Beam size (in case of BEAM_SEARCH == True)
-    OPTIMIZED_SEARCH = False                       # Compute annotations only a single time per sample
+    BEAM_SIZE = 10                                # Beam size (in case of BEAM_SEARCH == True)
+    BEAM_SEARCH_COND_INPUT = 1                    # Index of the conditional input used in beam search (i.e., state_below)
+    OPTIMIZED_SEARCH = False                      # Compute annotations only a single time per sample
     NORMALIZE_SAMPLING = True                     # Normalize hypotheses scores according to their length
     ALPHA_FACTOR = .6                             # Normalization according to length**ALPHA_FACTOR
                                                   # (see: arxiv.org/abs/1609.08144)
@@ -115,8 +116,8 @@ def load_parameters():
     LR_GAMMA = 0.8                                # Multiplier used for decreasing the LR
 
     # Training parameters
-    MAX_EPOCH = 50          # Stop when computed this number of epochs
-    BATCH_SIZE = 1         # ABiViRNet trained with BATCH_SIZE = 64
+    MAX_EPOCH = 50                                # Stop when computed this number of epochs
+    BATCH_SIZE = 64                               # ABiViRNet trained with BATCH_SIZE = 64
 
     HOMOGENEOUS_BATCHES = False                   # Use batches with homogeneous output lengths for every minibatch (Possibly buggy!)
     PARALLEL_LOADERS = 8                          # Parallel data batch loaders
