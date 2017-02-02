@@ -569,24 +569,11 @@ class VideoDesc_Model(Model_Wrapper):
         prev_desc_enc = eval(params['RNN_TYPE'])(params['DECODER_HIDDEN_SIZE'],
                                                  W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
                                                  U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                 V_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
                                                  b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                 wa_regularizer=l2(params['WEIGHT_DECAY']),
-                                                 Wa_regularizer=l2(params['WEIGHT_DECAY']),
-                                                 Ua_regularizer=l2(params['WEIGHT_DECAY']),
-                                                 ba_regularizer=l2(params['WEIGHT_DECAY']),
                                                  dropout_W=params['RECURRENT_DROPOUT_P'] if params[
                                                      'USE_RECURRENT_DROPOUT'] else None,
                                                  dropout_U=params['RECURRENT_DROPOUT_P'] if params[
                                                      'USE_RECURRENT_DROPOUT'] else None,
-                                                 dropout_V=params['RECURRENT_DROPOUT_P'] if params[
-                                                     'USE_RECURRENT_DROPOUT'] else None,
-                                                 dropout_wa=params['DROPOUT_P'] if params[
-                                                     'USE_DROPOUT'] else None,
-                                                 dropout_Wa=params['DROPOUT_P'] if params[
-                                                     'USE_DROPOUT'] else None,
-                                                 dropout_Ua=params['DROPOUT_P'] if params[
-                                                     'USE_DROPOUT'] else None,
                                                  return_sequences=False,
                                                  name='encoder_prev_desc' + params['RNN_TYPE'])(prev_desc_emb)
         prev_desc_enc = Regularize(prev_desc_enc, params, name='prev_desc_enc')
@@ -678,6 +665,12 @@ class VideoDesc_Model(Model_Wrapper):
                                               W_regularizer=l2(params['WEIGHT_DECAY']),
                                               activation='linear', name='logit_prev')
         out_layer_prev = shared_FC_prev(prev_desc_enc)
+        # Add broadcastable dimension before merging
+        shared_Lambda_Broadcast = Lambda(lambda x: K.expand_dims(x, dim=1),
+                                         output_shape=lambda s: tuple([s[0]]+[None]+[s[1]]), name='lambda_broadcast')
+
+        out_layer_prev = shared_Lambda_Broadcast(out_layer_prev)
+
 
         ### Regularization of FC outputs
         [out_layer_mlp, shared_reg_out_layer_mlp] = Regularize(out_layer_mlp, params,
@@ -690,8 +683,8 @@ class VideoDesc_Model(Model_Wrapper):
                                                                shared_layers=True, name='out_layer_prev')
 
         ### Merge of FC outputs
-        additional_output = merge([out_layer_mlp, out_layer_ctx, out_layer_emb], mode='sum', name='additional_input')
-        additional_output = TimeDistributed(Merge(mode='sum'))([additional_output, out_layer_prev])
+        additional_output = merge([out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev],
+                                  mode='sum', name='additional_input')
         # tanh activation
         shared_activation_tanh = Activation('tanh')
         out_layer = shared_activation_tanh(additional_output)
@@ -723,7 +716,7 @@ class VideoDesc_Model(Model_Wrapper):
                                          name=self.ids_outputs[0])
         softout = shared_FC_soft(out_layer)
 
-        self.model = Model(input=[video, next_words], output=softout)
+        self.model = Model(input=[video, next_words, prev_desc], output=softout)
 
         ##################################################################
         #                     BEAM SEARCH MODEL                          #
@@ -731,7 +724,7 @@ class VideoDesc_Model(Model_Wrapper):
         # Now that we have the basic training model ready, let's prepare the model for applying decoding
         # The beam-search model will include all the minimum required set of layers (decoder stage) which offer the
         # possibility to generate the next state in the sequence given a pre-processed input (encoder stage)
-        if params['BEAM_SEARCH']:
+        if params['BEAM_SEARCH'] and params['OPTIMIZED_SEARCH']:
             # First, we need a model that outputs the preprocessed input + initial h state
             # for applying the initial forward pass
             model_init_input = [video, next_words]
@@ -786,15 +779,21 @@ class VideoDesc_Model(Model_Wrapper):
             out_layer_ctx = shared_FC_ctx(x_att)
             out_layer_ctx = shared_Lambda_Permute(out_layer_ctx)
             out_layer_emb = shared_FC_emb(emb)
+            out_layer_prev = shared_FC_prev(prev_desc_enc)
+            out_layer_prev = shared_Lambda_Broadcast(out_layer_prev)
 
-            for (reg_out_layer_mlp, reg_out_layer_ctx, reg_out_layer_emb) in zip(shared_reg_out_layer_mlp,
-                                                                                 shared_reg_out_layer_ctx,
-                                                                                 shared_reg_out_layer_emb):
+
+            for (reg_out_layer_mlp, reg_out_layer_ctx, reg_out_layer_emb, reg_out_layer_prev) in zip(
+                    shared_reg_out_layer_mlp,
+                    shared_reg_out_layer_ctx,
+                    shared_reg_out_layer_emb,
+                    shared_reg_out_layer_prev):
                 out_layer_mlp = reg_out_layer_mlp(out_layer_mlp)
                 out_layer_ctx = reg_out_layer_ctx(out_layer_ctx)
                 out_layer_emb = reg_out_layer_emb(out_layer_emb)
+                out_layer_prev = reg_out_layer_prev(out_layer_prev)
 
-            additional_output = merge([out_layer_mlp, out_layer_ctx, out_layer_emb],
+            additional_output = merge([out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev],
                                       mode='sum', name='additional_input_model_next')
             out_layer = shared_activation_tanh(additional_output)
 
@@ -1094,7 +1093,7 @@ class VideoDesc_Model(Model_Wrapper):
                                          name=self.ids_outputs[0])
         softout = shared_FC_soft(out_layer)
 
-        self.model = Model(input=[video, next_words], output=softout)
+        self.model = Model(input=[video, next_words, prev_desc], output=softout)
 
         ##################################################################
         #                     BEAM SEARCH MODEL                          #

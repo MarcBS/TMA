@@ -130,7 +130,7 @@ def load_parameters():
     STOP_METRIC = 'Bleu_4'                        # Metric for the stop
 
     # Model parameters
-    MODEL_TYPE = 'TemporallyLinkedVideoDescriptionAtt'       # 'ArcticVideoCaptionWithInit'
+    MODEL_TYPE = 'TemporallyLinkedVideoDescriptionNoAtt'       # 'ArcticVideoCaptionWithInit'
                                                     # 'TemporallyLinkedVideoDescriptionNoAtt'
                                                     # 'TemporallyLinkedVideoDescriptionAtt'
 
