@@ -2,7 +2,7 @@ from keras.engine import Input
 from keras.engine.topology import merge
 from keras.layers import TimeDistributed, Bidirectional
 from keras.layers.embeddings import Embedding
-from keras.layers.recurrent import GRU, GRUCond, AttGRUCond, LSTM, LSTMCond, AttLSTMCond
+from keras.layers.recurrent import GRU, GRUCond, AttGRUCond, LSTM, LSTMCond, AttLSTMCond, AttLSTMCond2Inputs
 from keras.layers.core import Dense, Activation, Lambda, MaxoutDense, MaskedMean, PermuteGeneral, MaskLayer
 from keras.models import model_from_json, Model
 from keras.optimizers import Adam, RMSprop, Nadam, Adadelta, SGD
@@ -941,24 +941,11 @@ class VideoDesc_Model(Model_Wrapper):
         prev_desc_enc = eval(params['RNN_TYPE'])(params['DECODER_HIDDEN_SIZE'],
                                                  W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
                                                  U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                 V_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
                                                  b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                 wa_regularizer=l2(params['WEIGHT_DECAY']),
-                                                 Wa_regularizer=l2(params['WEIGHT_DECAY']),
-                                                 Ua_regularizer=l2(params['WEIGHT_DECAY']),
-                                                 ba_regularizer=l2(params['WEIGHT_DECAY']),
                                                  dropout_W=params['RECURRENT_DROPOUT_P'] if params[
                                                      'USE_RECURRENT_DROPOUT'] else None,
                                                  dropout_U=params['RECURRENT_DROPOUT_P'] if params[
                                                      'USE_RECURRENT_DROPOUT'] else None,
-                                                 dropout_V=params['RECURRENT_DROPOUT_P'] if params[
-                                                     'USE_RECURRENT_DROPOUT'] else None,
-                                                 dropout_wa=params['DROPOUT_P'] if params[
-                                                     'USE_DROPOUT'] else None,
-                                                 dropout_Wa=params['DROPOUT_P'] if params[
-                                                     'USE_DROPOUT'] else None,
-                                                 dropout_Ua=params['DROPOUT_P'] if params[
-                                                     'USE_DROPOUT'] else None,
                                                  return_sequences=True,
                                                  name='encoder_prev_desc' + params['RNN_TYPE'])(prev_desc_emb)
         prev_desc_enc = Regularize(prev_desc_enc, params, name='prev_desc_enc')

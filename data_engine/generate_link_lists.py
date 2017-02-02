@@ -1,7 +1,7 @@
 
 ## Parameters
 
-base_path = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
+base_path = '/media/HDD_2TB/DATASETS/EDUB-SegDesc/'
 
 path_files = 'Annotations'
 
