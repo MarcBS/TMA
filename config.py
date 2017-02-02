@@ -3,8 +3,8 @@ def load_parameters():
         Loads the defined parameters
     """
     # Input data params
-    DATA_ROOT_PATH = '/media/HDD_2TB/DATASETS/EDUB-SegDesc/'        # Root path to the data
-    #DATA_ROOT_PATH = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
+    #DATA_ROOT_PATH = '/media/HDD_2TB/DATASETS/EDUB-SegDesc/'        # Root path to the data
+    DATA_ROOT_PATH = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
 
     # preprocessed features
     DATASET_NAME = 'EDUB-SegDesc_features-linked'          # Dataset name (add '-linked' suffix for using
@@ -56,7 +56,7 @@ def load_parameters():
         INPUTS_IDS_DATASET.append('prev_caption')
         INPUTS_IDS_DATASET.append('link_index')
         INPUTS_IDS_MODEL.append('prev_caption')
-        INPUTS_IDS_MODEL.append('link_index')
+
     # Evaluation params
     METRICS = ['coco']  # Metric used for evaluating model after each epoch (leave empty if only prediction is required)
     EVAL_ON_SETS = ['val', 'test']                # Possible values: 'train', 'val' and 'test' (external evaluator)
@@ -80,7 +80,7 @@ def load_parameters():
     SAMPLE_ON_SETS = ['train', 'val']             # Possible values: 'train', 'val' and 'test'
     N_SAMPLES = 5                                 # Number of samples generated
     START_SAMPLING_ON_EPOCH = 1                   # First epoch where the model will be evaluated
-    SAMPLE_EACH_UPDATES = 50                     # Sampling frequency (default 450)
+    SAMPLE_EACH_UPDATES = 4                     # Sampling frequency (default 450)
 
     # Word representation params
     TOKENIZATION_METHOD = 'tokenize_icann'        # Select which tokenization we'll apply:
@@ -112,12 +112,12 @@ def load_parameters():
     LR = 0.001                                    # Learning rate. Recommended values - Adam 0.001 - Adadelta 1.0
     CLIP_C = 1.                                   # During training, clip gradients to this norm
     SAMPLE_WEIGHTS = True                         # Select whether we use a weights matrix (mask) for the data outputs
-    LR_DECAY = None                               # Minimum number of epochs before the next LR decay. Set to None if don't want to decay the learning rate
-    LR_GAMMA = 0.8                                # Multiplier used for decreasing the LR
+    LR_DECAY = 1                               # Minimum number of epochs before the next LR decay. Set to None if don't want to decay the learning rate
+    LR_GAMMA = 0.995                                # Multiplier used for decreasing the LR
 
     # Training parameters
     MAX_EPOCH = 50                                # Stop when computed this number of epochs
-    BATCH_SIZE = 64                               # ABiViRNet trained with BATCH_SIZE = 64
+    BATCH_SIZE = 2                                # ABiViRNet trained with BATCH_SIZE = 64
 
     HOMOGENEOUS_BATCHES = False                   # Use batches with homogeneous output lengths for every minibatch (Possibly buggy!)
     PARALLEL_LOADERS = 8                          # Parallel data batch loaders
@@ -131,7 +131,7 @@ def load_parameters():
     STOP_METRIC = 'Bleu_4'                        # Metric for the stop
 
     # Model parameters
-    MODEL_TYPE = 'TemporallyLinkedVideoDescriptionNoAtt'       # 'ArcticVideoCaptionWithInit'
+    MODEL_TYPE = 'TemporallyLinkedVideoDescriptionAtt'       # 'ArcticVideoCaptionWithInit'
                                                     # 'TemporallyLinkedVideoDescriptionNoAtt'
                                                     # 'TemporallyLinkedVideoDescriptionAtt'
 
@@ -198,6 +198,7 @@ def load_parameters():
 
     MODEL_NAME += EXTRA_NAME
 
+    # Name and location of the pre-trained model (only if RELOAD > 0)
     PRE_TRAINED_MODEL = MODEL_NAME #'MSVD_best_model'
     PRE_TRAINED_MODEL_STORE_PATH = 'trained_models/' + PRE_TRAINED_MODEL  + '/'
 

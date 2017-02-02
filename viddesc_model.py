@@ -172,7 +172,8 @@ class VideoDesc_Model(Model_Wrapper):
         """
 
         # Video model
-        video = Input(name=self.ids_inputs[0], shape=tuple([params['NUM_FRAMES'], params['IMG_FEAT_SIZE']]))
+        # video = Input(name=self.ids_inputs[0], shape=tuple([params['NUM_FRAMES'], params['IMG_FEAT_SIZE']]))
+        video = Input(name=self.ids_inputs[0], shape=tuple([None, params['IMG_FEAT_SIZE']]))
         input_video = video
         ##################################################################
         #                       ENCODER
@@ -365,7 +366,7 @@ class VideoDesc_Model(Model_Wrapper):
         self.model = Model(input=[video, next_words], output=softout)
 
         ##################################################################
-        #                     BEAM SEARCH MODEL                          #
+        #               BEAM SEARCH OPTIMIZED MODEL                      #
         ##################################################################
         # Now that we have the basic training model ready, let's prepare the model for applying decoding
         # The beam-search model will include all the minimum required set of layers (decoder stage) which offer the
@@ -481,14 +482,14 @@ class VideoDesc_Model(Model_Wrapper):
                 + Last word projected to output
 
             * LSTM on output of previous sequence/video
-            * Attention mechanisme on words of previous output (not implemented in this model)
 
         :param params:
         :return:
         """
 
         # Video model
-        video = Input(name=self.ids_inputs[0], shape=tuple([params['NUM_FRAMES'], params['IMG_FEAT_SIZE']]))
+        #video = Input(name=self.ids_inputs[0], shape=tuple([params['NUM_FRAMES'], params['IMG_FEAT_SIZE']]))
+        video = Input(name=self.ids_inputs[0], shape=tuple([None, params['IMG_FEAT_SIZE']]))
         input_video = video
         ##################################################################
         #                       ENCODER
@@ -719,7 +720,7 @@ class VideoDesc_Model(Model_Wrapper):
         self.model = Model(input=[video, next_words, prev_desc], output=softout)
 
         ##################################################################
-        #                     BEAM SEARCH MODEL                          #
+        #               BEAM SEARCH OPTIMIZED MODEL                      #
         ##################################################################
         # Now that we have the basic training model ready, let's prepare the model for applying decoding
         # The beam-search model will include all the minimum required set of layers (decoder stage) which offer the
@@ -833,7 +834,7 @@ class VideoDesc_Model(Model_Wrapper):
     def TemporallyLinkedVideoDescriptionAtt(self, params):
         """
         Video captioning with:
-            * Attention mechansim on video frames
+            * Attention mechanism on video frames
             * Conditional LSTM for processing the video
             * Feed forward layers:
                 + Context projected to output
@@ -845,9 +846,13 @@ class VideoDesc_Model(Model_Wrapper):
         :param params:
         :return:
         """
+        # Prepare variables for temporally linked samples
+        self.ids_temporally_linked_inputs = [self.ids_inputs[1]]
+        self.matchings_sample_to_next_sample = {self.ids_outputs[0]: self.ids_inputs[1]}
 
         # Video model
-        video = Input(name=self.ids_inputs[0], shape=tuple([params['NUM_FRAMES'], params['IMG_FEAT_SIZE']]))
+        # video = Input(name=self.ids_inputs[0], shape=tuple([params['NUM_FRAMES'], params['IMG_FEAT_SIZE']]))
+        video = Input(name=self.ids_inputs[0], shape=tuple([None, params['IMG_FEAT_SIZE']]))
         input_video = video
         ##################################################################
         #                       ENCODER
@@ -947,7 +952,7 @@ class VideoDesc_Model(Model_Wrapper):
                                                      'USE_RECURRENT_DROPOUT'] else None,
                                                  return_sequences=True,
                                                  name='encoder_prev_desc' + params['RNN_TYPE'])(prev_desc_emb)
-        prev_desc_enc = Regularize(prev_desc_enc, params, name='prev_desc_enc')
+        prev_desc_enc = Regularize(prev_desc_enc, params, name='encoder_prev_desc')
 
         # LSTM initialization perceptrons with ctx mean
         # 3.2. Decoder's RNN initialization perceptrons with ctx mean
@@ -1096,7 +1101,7 @@ class VideoDesc_Model(Model_Wrapper):
         self.model = Model(input=[video, next_words, prev_desc], output=softout)
 
         ##################################################################
-        #                     BEAM SEARCH MODEL                          #
+        #               BEAM SEARCH OPTIMIZED MODEL                      #
         ##################################################################
         # Now that we have the basic training model ready, let's prepare the model for applying decoding
         # The beam-search model will include all the minimum required set of layers (decoder stage) which offer the
