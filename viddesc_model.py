@@ -847,8 +847,8 @@ class VideoDesc_Model(Model_Wrapper):
         :return:
         """
         # Prepare variables for temporally linked samples
-        self.ids_temporally_linked_inputs = [self.ids_inputs[1]]
-        self.matchings_sample_to_next_sample = {self.ids_outputs[0]: self.ids_inputs[1]}
+        self.ids_temporally_linked_inputs = [self.ids_inputs[2]]
+        self.matchings_sample_to_next_sample = {self.ids_outputs[0]: self.ids_inputs[2]}
 
         # Video model
         # video = Input(name=self.ids_inputs[0], shape=tuple([params['NUM_FRAMES'], params['IMG_FEAT_SIZE']]))

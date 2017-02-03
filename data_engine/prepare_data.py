@@ -101,8 +101,28 @@ def build_dataset(params):
         if '-linked' in params['DATASET_NAME']:
             # Set input captions from previous event/video
             ds, repeat_images = insertTemporallyLinkedCaptions(ds, params)
-            ds.setInput(None, 'val', type='ghost', id=params['INPUTS_IDS_DATASET'][2], required=False)
-            ds.setInput(None, 'test', type='ghost', id=params['INPUTS_IDS_DATASET'][2], required=False)
+            ds.setInput([],
+                        'val',
+                        type = 'text',
+                        id = params['INPUTS_IDS_DATASET'][2],
+                        build_vocabulary = params['OUTPUTS_IDS_DATASET'][0],
+                        tokenization = params['TOKENIZATION_METHOD'],
+                        fill = params['FILL'],
+                        pad_on_batch = True,
+                        max_text_len = params['MAX_OUTPUT_TEXT_LEN'],
+                        min_occ = params['MIN_OCCURRENCES_VOCAB'],
+                        required = False)
+            ds.setInput([],
+                        'test',
+                        type='text',
+                        id=params['INPUTS_IDS_DATASET'][2],
+                        build_vocabulary=params['OUTPUTS_IDS_DATASET'][0],
+                        tokenization=params['TOKENIZATION_METHOD'],
+                        fill=params['FILL'],
+                        pad_on_batch=True,
+                        max_text_len=params['MAX_OUTPUT_TEXT_LEN'],
+                        min_occ=params['MIN_OCCURRENCES_VOCAB'],
+                        required=False)
         
         # Process dataset for keeping only one caption per video and storing the rest in a dict() with the following format:
         #        ds.extra_variables[set_name][id_output][img_position] = [cap1, cap2, cap3, ..., capN]

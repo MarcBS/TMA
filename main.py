@@ -251,6 +251,7 @@ def buildCallbacks(params, model, dataset):
         vocab = dataset.vocabulary[params['OUTPUTS_IDS_DATASET'][0]]['idx2words']
         if params['BEAM_SEARCH']:
             extra_vars['beam_size'] = params['BEAM_SIZE']
+            extra_vars['state_below_index'] = params.get('BEAM_SEARCH_COND_INPUT', -1)
             extra_vars['maxlen'] = params['MAX_OUTPUT_TEXT_LEN_TEST']
             extra_vars['optimized_search'] = params['OPTIMIZED_SEARCH']
             extra_vars['model_inputs'] = params['INPUTS_IDS_MODEL']
@@ -259,6 +260,7 @@ def buildCallbacks(params, model, dataset):
             extra_vars['dataset_outputs'] = params['OUTPUTS_IDS_DATASET']
             extra_vars['normalize'] = params['NORMALIZE_SAMPLING']
             extra_vars['alpha_factor'] = params['ALPHA_FACTOR']
+            extra_vars['temporally_linked'] = '-linked' in params['DATASET_NAME']
 
         callback_sampling = SampleEachNUpdates(model,
                                                dataset,

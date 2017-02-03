@@ -53,9 +53,10 @@ def load_parameters():
                              'test': 'Annotations/test_link_samples.txt',
                             }
 
-        INPUTS_IDS_DATASET.append('prev_caption')
+        INPUTS_IDS_DATASET.append('prev_description')
         INPUTS_IDS_DATASET.append('link_index')
-        INPUTS_IDS_MODEL.append('prev_caption')
+        INPUTS_IDS_MODEL.append('prev_description')
+        INPUTS_IDS_MODEL.append('link_index')
 
     # Evaluation params
     METRICS = ['coco']  # Metric used for evaluating model after each epoch (leave empty if only prediction is required)
@@ -79,8 +80,8 @@ def load_parameters():
     # Sampling params: Show some samples during training
     SAMPLE_ON_SETS = ['train', 'val']             # Possible values: 'train', 'val' and 'test'
     N_SAMPLES = 5                                 # Number of samples generated
-    START_SAMPLING_ON_EPOCH = 1                   # First epoch where the model will be evaluated
-    SAMPLE_EACH_UPDATES = 4                     # Sampling frequency (default 450)
+    START_SAMPLING_ON_EPOCH = 0                   # First epoch where the model will be evaluated
+    SAMPLE_EACH_UPDATES = 450                      # Sampling frequency (default 450)
 
     # Word representation params
     TOKENIZATION_METHOD = 'tokenize_icann'        # Select which tokenization we'll apply:
@@ -117,7 +118,7 @@ def load_parameters():
 
     # Training parameters
     MAX_EPOCH = 50                                # Stop when computed this number of epochs
-    BATCH_SIZE = 2                                # ABiViRNet trained with BATCH_SIZE = 64
+    BATCH_SIZE = 64                                # ABiViRNet trained with BATCH_SIZE = 64
 
     HOMOGENEOUS_BATCHES = False                   # Use batches with homogeneous output lengths for every minibatch (Possibly buggy!)
     PARALLEL_LOADERS = 8                          # Parallel data batch loaders
