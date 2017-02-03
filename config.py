@@ -9,7 +9,7 @@ def load_parameters():
     # preprocessed features
     DATASET_NAME = 'EDUB-SegDesc_features-linked'          # Dataset name (add '-linked' suffix for using
                                                     # dataset with temporally-linked training data)
-    PRE_TRAINED_DATASET_NAME = None#'MSVD_features'      # Dataset name for reusing vocabulary of pre-trained model
+    PRE_TRAINED_DATASET_NAME = None #'MSVD_features'      # Dataset name for reusing vocabulary of pre-trained model
                                                     # (only applicable if we are using a pre-trained model, default None)
 
     # Input data

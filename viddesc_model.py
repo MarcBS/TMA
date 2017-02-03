@@ -952,7 +952,7 @@ class VideoDesc_Model(Model_Wrapper):
                                                      'USE_RECURRENT_DROPOUT'] else None,
                                                  return_sequences=True,
                                                  name='encoder_prev_desc' + params['RNN_TYPE'])(prev_desc_emb)
-        prev_desc_enc = Regularize(prev_desc_enc, params, name='encoder_prev_desc')
+        prev_desc_enc = Regularize(prev_desc_enc, params, name='prev_desc_enc')
 
         # LSTM initialization perceptrons with ctx mean
         # 3.2. Decoder's RNN initialization perceptrons with ctx mean
@@ -1051,6 +1051,7 @@ class VideoDesc_Model(Model_Wrapper):
                                                activation='linear'),
                                          name='logit_prev')
         out_layer_prev = shared_FC_prev(prev_desc_att)
+        out_layer_prev = shared_Lambda_Permute(out_layer_prev)
 
         ### Regularization of FC outputs
         [out_layer_mlp, shared_reg_out_layer_mlp] = Regularize(out_layer_mlp, params,
