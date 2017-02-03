@@ -5,7 +5,7 @@ from config import load_parameters
 from data_engine.prepare_data import build_dataset
 from viddesc_model import VideoDesc_Model
 
-from keras_wrapper.cnn_model import loadModel, saveModel
+from keras_wrapper.cnn_model import loadModel, saveModel, transferWeights
 from keras_wrapper.extra.callbacks import PrintPerformanceMetricOnEpochEndOrEachNUpdates, SampleEachNUpdates
 from keras_wrapper.extra.read_write import dict2pkl, list2file
 from keras_wrapper.extra.evaluation import select as selectMetric
@@ -36,7 +36,7 @@ def train_model(params):
 
 
     ########### Build model
-    if(params['RELOAD'] == 0): # build new model 
+    if params['RELOAD'] == 0 or params['LOAD_WEIGHTS_ONLY']: # build new model
         video_model = VideoDesc_Model(params,
                                       type=params['MODEL_TYPE'],
                                       verbose=params['VERBOSE'],
@@ -61,7 +61,14 @@ def train_model(params):
                 id_dest = video_model.ids_outputs[i]
                 outputMapping[id_dest] = pos_target
         video_model.setOutputsMapping(outputMapping)
-        
+
+        # Only load weights from pre-trained model
+        if params['LOAD_WEIGHTS_ONLY']:
+            old_model = loadModel(params['PRE_TRAINED_MODEL_STORE_PATH'], params['RELOAD'])
+            video_model = transferWeights(old_model, video_model, params['LAYERS_MAPPING'])
+            video_model.setOptimizer()
+            params['RELOAD'] = 0
+
     else: # resume from previously trained model
         video_model = loadModel(params['PRE_TRAINED_MODEL_STORE_PATH'], params['RELOAD'])
         video_model.setOptimizer()

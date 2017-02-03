@@ -9,8 +9,11 @@ def load_parameters():
     # preprocessed features
     DATASET_NAME = 'EDUB-SegDesc_features-linked'          # Dataset name (add '-linked' suffix for using
                                                     # dataset with temporally-linked training data)
-    PRE_TRAINED_DATASET_NAME = None #'MSVD_features'      # Dataset name for reusing vocabulary of pre-trained model
+    PRE_TRAINED_DATASET_NAME = 'MSVD_features'      # Dataset name for reusing vocabulary of pre-trained model
                                                     # (only applicable if we are using a pre-trained model, default None)
+    VOCABULARIES_MAPPING = {'description': 'description',
+                            'state_below': 'description',
+                            'prev_description': 'description'}
 
     # Input data
     INPUT_DATA_TYPE = 'video-features'                          # 'video-features' or 'video'
@@ -63,8 +66,8 @@ def load_parameters():
     EVAL_ON_SETS = ['val', 'test']                # Possible values: 'train', 'val' and 'test' (external evaluator)
     EVAL_ON_SETS_KERAS = []                       # Possible values: 'train', 'val' and 'test' (Keras' evaluator)
     START_EVAL_ON_EPOCH = 1                       # First epoch where the model will be evaluated
-    EVAL_EACH_EPOCHS = True                       # Select whether evaluate between N epochs or N updates
-    EVAL_EACH = 1                                 # Sets the evaluation frequency (epochs or updates)
+    EVAL_EACH_EPOCHS = False                       # Select whether evaluate between N epochs or N updates
+    EVAL_EACH = 50                                 # Sets the evaluation frequency (epochs or updates)
 
     # Search parameters
     SAMPLING = 'max_likelihood'                   # Possible values: multinomial or max_likelihood (recommended)
@@ -81,7 +84,7 @@ def load_parameters():
     SAMPLE_ON_SETS = ['train', 'val']             # Possible values: 'train', 'val' and 'test'
     N_SAMPLES = 5                                 # Number of samples generated
     START_SAMPLING_ON_EPOCH = 0                   # First epoch where the model will be evaluated
-    SAMPLE_EACH_UPDATES = 450                      # Sampling frequency (default 450)
+    SAMPLE_EACH_UPDATES = 50                      # Sampling frequency (default 450)
 
     # Word representation params
     TOKENIZATION_METHOD = 'tokenize_icann'        # Select which tokenization we'll apply:
@@ -114,7 +117,7 @@ def load_parameters():
     CLIP_C = 1.                                   # During training, clip gradients to this norm
     SAMPLE_WEIGHTS = True                         # Select whether we use a weights matrix (mask) for the data outputs
     LR_DECAY = 1                               # Minimum number of epochs before the next LR decay. Set to None if don't want to decay the learning rate
-    LR_GAMMA = 0.995                                # Multiplier used for decreasing the LR
+    LR_GAMMA = 0.8                                # Multiplier used for decreasing the LR
 
     # Training parameters
     MAX_EPOCH = 50                                # Stop when computed this number of epochs
@@ -127,7 +130,7 @@ def load_parameters():
 
     # Early stop parameters
     EARLY_STOP = True                             # Turns on/off the early stop protocol
-    PATIENCE = 15                                 # We'll stop if the val STOP_METRIC does not improve after this
+    PATIENCE = 20                                 # We'll stop if the val STOP_METRIC does not improve after this
                                                   # number of evaluations
     STOP_METRIC = 'Bleu_4'                        # Metric for the stop
 
@@ -139,19 +142,19 @@ def load_parameters():
     RNN_TYPE = 'LSTM'                             # RNN unit type ('LSTM' and 'GRU' supported)
 
     # Input text parameters
-    TARGET_TEXT_EMBEDDING_SIZE = 420              # Source language word embedding size.
+    TARGET_TEXT_EMBEDDING_SIZE = 301              # Source language word embedding size (ABiViRNet 301)
     TRG_PRETRAINED_VECTORS = None                 # Path to pretrained vectors. (e.g. DATA_ROOT_PATH + '/DATA/word2vec.%s.npy' % TRG_LAN)
                                                   # Set to None if you don't want to use pretrained vectors.
                                                   # When using pretrained word embeddings, the size of the pretrained word embeddings must match with the word embeddings size.
     TRG_PRETRAINED_VECTORS_TRAINABLE = True       # Finetune or not the target word embedding vectors.
 
     # Encoder configuration
-    ENCODER_HIDDEN_SIZE = 600                     # For models with RNN encoder
+    ENCODER_HIDDEN_SIZE = 717                     # For models with RNN encoder (ABiViRNet 717)
     BIDIRECTIONAL_ENCODER = True                  # Use bidirectional encoder
     N_LAYERS_ENCODER = 1                          # Stack this number of encoding layers
     BIDIRECTIONAL_DEEP_ENCODER = True             # Use bidirectional encoder in all encoding layers
 
-    DECODER_HIDDEN_SIZE = 484   # For models with LSTM decoder
+    DECODER_HIDDEN_SIZE = 484   # For models with LSTM decoder (ABiViRNet 484)
 
     IMG_EMBEDDING_LAYERS = []  # FC layers for visual embedding
                                # Here we should specify the activation function and the output dimension
@@ -200,15 +203,26 @@ def load_parameters():
     MODEL_NAME += EXTRA_NAME
 
     # Name and location of the pre-trained model (only if RELOAD > 0)
-    PRE_TRAINED_MODEL = MODEL_NAME #'MSVD_best_model'
+    PRE_TRAINED_MODEL = 'MSVD_best_model' # default: MODEL_NAME
     PRE_TRAINED_MODEL_STORE_PATH = 'trained_models/' + PRE_TRAINED_MODEL  + '/'
+    LOAD_WEIGHTS_ONLY = True                           # Load weights of pre-trained model or complete Model_Wrapper instance
+    # Layers' mapping from old to new model if LOAD_WEIGHTS_ONLY
+    #   You can check the layers of a model with [layer.name for layer in model_wrapper.model.layers]
+    LAYERS_MAPPING = {'bidirectional_encoder': 'bidirectional_encoder_LSTM',
+                      'initial_state': 'initial_state',
+                      'initial_memory': 'initial_memory',
+                      'target_word_embedding': 'target_word_embedding',
+                      'attlstmcond_1': 'decoder_AttLSTMCond2Inputs',
+                      'logit_ctx': 'logit_ctx',
+                      'logit_lstm': 'logit_lstm',
+                      'description': 'description'}
 
     STORE_PATH = 'trained_models/' + MODEL_NAME  + '/' # Models and evaluation results will be stored here
     DATASET_STORE_PATH = 'datasets/'                   # Dataset instance will be stored here
 
     SAMPLING_SAVE_MODE = 'list'                        # 'list' or 'vqa'
     VERBOSE = 1                                        # Vqerbosity level
-    RELOAD = 0                                        # If 0 start training from scratch, otherwise the model
+    RELOAD = 2                                        # If 0 start training from scratch, otherwise the model
                                                        # Saved on epoch 'RELOAD' will be used
     REBUILD_DATASET = True                             # Build again or use stored instance
     MODE = 'training'                                  # 'training' or 'sampling' (if 'sampling' then RELOAD must

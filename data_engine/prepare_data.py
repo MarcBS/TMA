@@ -1,5 +1,6 @@
 from keras_wrapper.dataset import Dataset, saveDataset, loadDataset
 
+import copy
 import numpy as np
 import logging
 logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s] %(message)s', datefmt='%d/%m/%Y %H:%M:%S')
@@ -149,12 +150,9 @@ def build_dataset(params):
     # Load vocabulary-related parameters of dataset used for pre-training
     if params['PRE_TRAINED_DATASET_NAME'] is not None:
         dataset_pretrained = loadDataset(params['DATASET_STORE_PATH']+'Dataset_'+params['PRE_TRAINED_DATASET_NAME']+'.pkl')
-        for id in dataset_pretrained.vocabulary.keys():
-            if id in ds.vocabulary.keys():
-                ds.vocabulary[id] = dataset_pretrained.vocabulary[id]
-            if id in ds.vocabulary_len.keys():
-                ds.vocabulary_len[id] = dataset_pretrained.vocabulary_len[id]
-        #ds.n_classes_text = dataset_pretrained.n_classes_text
+        for id_new, id_old in params['VOCABULARIES_MAPPING'].iteritems():
+            ds.vocabulary[id_new] = copy.deepcopy(dataset_pretrained.vocabulary[id_old])
+            ds.vocabulary_len[id_new] = copy.deepcopy(dataset_pretrained.vocabulary_len[id_old])
 
     return ds
 
