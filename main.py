@@ -71,9 +71,6 @@ def train_model(params):
     ###########
 
 
-    dataset.len_train = 2
-
-
     ########### Callbacks
     callbacks = buildCallbacks(params, video_model, dataset)
     ###########
