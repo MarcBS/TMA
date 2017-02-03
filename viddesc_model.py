@@ -982,6 +982,7 @@ class VideoDesc_Model(Model_Wrapper):
                 input_attentional_decoder.append(initial_memory)
         else:
             input_attentional_decoder = [emb, input_video, prev_desc_enc]
+
         ##################################################################
         #                       DECODER
         ##################################################################
@@ -1108,10 +1109,10 @@ class VideoDesc_Model(Model_Wrapper):
         # The beam-search model will include all the minimum required set of layers (decoder stage) which offer the
         # possibility to generate the next state in the sequence given a pre-processed input (encoder stage)
         if params['BEAM_SEARCH'] and params['OPTIMIZED_SEARCH']:
-            # First, we need a model that outputs the preprocessed input + initial h state
+            # First, we need a model that outputs both preprocessed inputs + initial h state
             # for applying the initial forward pass
-            model_init_input = [video, next_words]
-            model_init_output = [softout, input_video, h_state]
+            model_init_input = [video, next_words, prev_desc]
+            model_init_output = [softout, input_video, prev_desc_enc, h_state]
             if params['RNN_TYPE'] == 'LSTM':
                 model_init_output.append(h_memory)
 
@@ -1120,14 +1121,16 @@ class VideoDesc_Model(Model_Wrapper):
             # Store inputs and outputs names for model_init
             self.ids_inputs_init = self.ids_inputs
             # first output must be the output probs.
-            self.ids_outputs_init = self.ids_outputs + ['preprocessed_input', 'next_state']
+            self.ids_outputs_init = self.ids_outputs + ['preprocessed_input', 'preprocessed_input2', 'next_state']
             if params['RNN_TYPE'] == 'LSTM':
                 self.ids_outputs_init.append('next_memory')
 
             # Second, we need to build an additional model with the capability to have the following inputs:
             #   - preprocessed_input
+            #   - preprocessed_input2
             #   - prev_word
             #   - prev_state
+            #   - prev_memory (only if using LSTM)
             # and the following outputs:
             #   - softmax probabilities
             #   - next_state
@@ -1141,9 +1144,11 @@ class VideoDesc_Model(Model_Wrapper):
 
             # Define inputs
             preprocessed_annotations = Input(name='preprocessed_input',
-                                             shape=tuple([params['NUM_FRAMES'], preprocessed_size]))
+                                             shape=tuple([None, preprocessed_size]))
+            preprocessed_prev_description = Input(name='preprocessed_input2',
+                                                  shape=tuple([None, params['DECODER_HIDDEN_SIZE']]))
             prev_h_state = Input(name='prev_state', shape=tuple([params['DECODER_HIDDEN_SIZE']]))
-            input_attentional_decoder = [emb, preprocessed_annotations, prev_h_state]
+            input_attentional_decoder = [emb, preprocessed_annotations, preprocessed_prev_description, prev_h_state]
 
             if params['RNN_TYPE'] == 'LSTM':
                 prev_h_memory = Input(name='prev_memory', shape=tuple([params['DECODER_HIDDEN_SIZE']]))
@@ -1153,9 +1158,11 @@ class VideoDesc_Model(Model_Wrapper):
             proj_h = rnn_output[0]
             x_att = rnn_output[1]
             alphas = rnn_output[2]
-            h_state = rnn_output[3]
+            prev_desc_att = rnn_output[3]
+            prev_desc_alphas = rnn_output[4]
+            h_state = rnn_output[5]
             if params['RNN_TYPE'] == 'LSTM':
-                h_memory = rnn_output[4]
+                h_memory = rnn_output[6]
             for reg in shared_reg_proj_h:
                 proj_h = reg(proj_h)
 
@@ -1163,15 +1170,20 @@ class VideoDesc_Model(Model_Wrapper):
             out_layer_ctx = shared_FC_ctx(x_att)
             out_layer_ctx = shared_Lambda_Permute(out_layer_ctx)
             out_layer_emb = shared_FC_emb(emb)
+            out_layer_prev = shared_FC_prev(prev_desc_att)
+            out_layer_prev = shared_Lambda_Permute(out_layer_prev)
 
-            for (reg_out_layer_mlp, reg_out_layer_ctx, reg_out_layer_emb) in zip(shared_reg_out_layer_mlp,
-                                                                                 shared_reg_out_layer_ctx,
-                                                                                 shared_reg_out_layer_emb):
+            for (reg_out_layer_mlp, reg_out_layer_ctx,
+                 reg_out_layer_emb, reg_out_layer_prev) in zip(shared_reg_out_layer_mlp,
+                                                               shared_reg_out_layer_ctx,
+                                                               shared_reg_out_layer_emb,
+                                                               shared_reg_out_layer_prev):
                 out_layer_mlp = reg_out_layer_mlp(out_layer_mlp)
                 out_layer_ctx = reg_out_layer_ctx(out_layer_ctx)
                 out_layer_emb = reg_out_layer_emb(out_layer_emb)
+                out_layer_prev = reg_out_layer_prev(out_layer_prev)
 
-            additional_output = merge([out_layer_mlp, out_layer_ctx, out_layer_emb],
+            additional_output = merge([out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev],
                                       mode='sum', name='additional_input_model_next')
             out_layer = shared_activation_tanh(additional_output)
 
@@ -1182,25 +1194,26 @@ class VideoDesc_Model(Model_Wrapper):
 
             # Softmax
             softout = shared_FC_soft(out_layer)
-            model_next_inputs = [next_words, preprocessed_annotations, prev_h_state]
-            model_next_outputs = [softout, preprocessed_annotations, h_state]
+            model_next_inputs = [next_words, preprocessed_annotations, preprocessed_prev_description, prev_h_state]
+            model_next_outputs = [softout, preprocessed_annotations, preprocessed_prev_description, h_state]
             if params['RNN_TYPE'] == 'LSTM':
                 model_next_inputs.append(prev_h_memory)
                 model_next_outputs.append(h_memory)
 
-            self.model_next = Model(input=model_next_inputs,
-                                    output=model_next_outputs)
+            self.model_next = Model(input=model_next_inputs, output=model_next_outputs)
 
             # Store inputs and outputs names for model_next
             # first input must be previous word
-            self.ids_inputs_next = [self.ids_inputs[1]] + ['preprocessed_input', 'prev_state']
+            self.ids_inputs_next = [self.ids_inputs[1]] + ['preprocessed_input', 'preprocessed_input2', 'prev_state']
             # first output must be the output probs.
-            self.ids_outputs_next = self.ids_outputs + ['preprocessed_input', 'next_state']
+            self.ids_outputs_next = self.ids_outputs + ['preprocessed_input', 'preprocessed_input2', 'next_state']
 
             # Input -> Output matchings from model_init to model_next and from model_next to model_next
             self.matchings_init_to_next = {'preprocessed_input': 'preprocessed_input',
+                                           'preprocessed_input2': 'preprocessed_input2',
                                            'next_state': 'prev_state'}
             self.matchings_next_to_next = {'preprocessed_input': 'preprocessed_input',
+                                           'preprocessed_input2': 'preprocessed_input2',
                                            'next_state': 'prev_state'}
             if params['RNN_TYPE'] == 'LSTM':
                 self.ids_inputs_next.append('prev_memory')

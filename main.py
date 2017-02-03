@@ -70,7 +70,10 @@ def train_model(params):
             video_model.setName(params['MODEL_NAME'], models_path=params['STORE_PATH'], clear_dirs=False)
     ###########
 
-    
+
+    dataset.len_train = 2
+
+
     ########### Callbacks
     callbacks = buildCallbacks(params, video_model, dataset)
     ###########
