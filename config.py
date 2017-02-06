@@ -155,6 +155,7 @@ def load_parameters():
     BIDIRECTIONAL_DEEP_ENCODER = True             # Use bidirectional encoder in all encoding layers
 
     DECODER_HIDDEN_SIZE = 484   # For models with LSTM decoder (ABiViRNet 484)
+    ADDITIONAL_OUTPUT_MERGE_MODE = 'sum' # Merge mode for the skip connections
 
     IMG_EMBEDDING_LAYERS = []  # FC layers for visual embedding
                                # Here we should specify the activation function and the output dimension
