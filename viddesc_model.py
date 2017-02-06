@@ -73,7 +73,7 @@ class VideoDesc_Model(Model_Wrapper):
                     self.trg_embedding_weights[index, :] = self.trg_word_vectors[word]
             self.trg_embedding_weights = [self.trg_embedding_weights]
             self.trg_embedding_weights_trainable = params['TRG_PRETRAINED_VECTORS_TRAINABLE']
-
+            del self.trg_word_vectors
         else:
             self.trg_embedding_weights = None
             self.trg_embedding_weights_trainable = True
