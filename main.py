@@ -63,7 +63,7 @@ def train_model(params):
         video_model.setOutputsMapping(outputMapping)
 
         # Only load weights from pre-trained model
-        if params['LOAD_WEIGHTS_ONLY']:
+        if params['LOAD_WEIGHTS_ONLY'] and params['RELOAD'] > 0:
             old_model = loadModel(params['PRE_TRAINED_MODEL_STORE_PATH'], params['RELOAD'])
             video_model = transferWeights(old_model, video_model, params['LAYERS_MAPPING'])
             video_model.setOptimizer()
