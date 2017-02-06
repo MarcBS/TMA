@@ -791,7 +791,7 @@ class VideoDesc_Model(Model_Wrapper):
             out_layer_ctx = shared_FC_ctx(x_att)
             out_layer_ctx = shared_Lambda_Permute(out_layer_ctx)
             out_layer_emb = shared_FC_emb(emb)
-            out_layer_prev = shared_FC_prev(prev_desc_enc)
+            out_layer_prev = shared_FC_prev(preprocessed_prev_description)
             out_layer_prev = shared_Lambda_Broadcast(out_layer_prev)
 
             for (reg_out_layer_mlp, reg_out_layer_ctx, reg_out_layer_emb, reg_out_layer_prev) in zip(
