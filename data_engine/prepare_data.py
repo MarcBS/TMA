@@ -3,26 +3,27 @@ from keras_wrapper.dataset import Dataset, saveDataset, loadDataset
 import copy
 import numpy as np
 import logging
+
 logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s] %(message)s', datefmt='%d/%m/%Y %H:%M:%S')
 
+
 def build_dataset(params):
-    
-    if params['REBUILD_DATASET']: # We build a new dataset instance
-        if(params['VERBOSE'] > 0):
-            silence=False
+    if params['REBUILD_DATASET']:  # We build a new dataset instance
+        if params['VERBOSE'] > 0:
+            silence = False
             logging.info('Building ' + params['DATASET_NAME'] + ' dataset')
         else:
-            silence=True
+            silence = True
 
         base_path = params['DATA_ROOT_PATH']
         name = params['DATASET_NAME']
         ds = Dataset(name, base_path, silence=silence)
 
-        ##### OUTPUT DATA
+        # OUTPUT DATA
         # Let's load the train, val and test splits of the descriptions (outputs)
         #    the files include a description per line. In this dataset a variable number
         #    of descriptions per video are provided.
-        ds.setOutput(base_path+'/'+params['DESCRIPTION_FILES']['train'],
+        ds.setOutput(base_path + '/' + params['DESCRIPTION_FILES']['train'],
                      'train',
                      type='text',
                      id=params['OUTPUTS_IDS_DATASET'][0],
@@ -33,8 +34,8 @@ def build_dataset(params):
                      max_text_len=params['MAX_OUTPUT_TEXT_LEN'],
                      sample_weights=params['SAMPLE_WEIGHTS'],
                      min_occ=params['MIN_OCCURRENCES_VOCAB'])
-        
-        ds.setOutput(base_path+'/'+params['DESCRIPTION_FILES']['val'],
+
+        ds.setOutput(base_path + '/' + params['DESCRIPTION_FILES']['val'],
                      'val',
                      type='text',
                      id=params['OUTPUTS_IDS_DATASET'][0],
@@ -44,8 +45,8 @@ def build_dataset(params):
                      sample_weights=params['SAMPLE_WEIGHTS'],
                      max_text_len=params['MAX_OUTPUT_TEXT_LEN_TEST'],
                      min_occ=params['MIN_OCCURRENCES_VOCAB'])
-        
-        ds.setOutput(base_path+'/'+params['DESCRIPTION_FILES']['test'],
+
+        ds.setOutput(base_path + '/' + params['DESCRIPTION_FILES']['test'],
                      'test',
                      type='text',
                      id=params['OUTPUTS_IDS_DATASET'][0],
@@ -56,21 +57,22 @@ def build_dataset(params):
                      max_text_len=params['MAX_OUTPUT_TEXT_LEN_TEST'],
                      min_occ=params['MIN_OCCURRENCES_VOCAB'])
 
-        ##### INPUT DATA
+        # INPUT DATA
         # Let's load the associated videos (inputs)
         #    we must take into account that in this dataset we have a different number of sentences per video, 
         #    for this reason we introduce the parameter 'repeat_set'=num_captions, where num_captions is a list
         #    containing the number of captions in each video.
 
-        num_captions_train = np.load(base_path+'/'+params['DESCRIPTION_COUNTS_FILES']['train'])
-        num_captions_val = np.load(base_path+'/'+params['DESCRIPTION_COUNTS_FILES']['val'])
-        num_captions_test = np.load(base_path+'/'+params['DESCRIPTION_COUNTS_FILES']['test'])
+        num_captions_train = np.load(base_path + '/' + params['DESCRIPTION_COUNTS_FILES']['train'])
+        num_captions_val = np.load(base_path + '/' + params['DESCRIPTION_COUNTS_FILES']['val'])
+        num_captions_test = np.load(base_path + '/' + params['DESCRIPTION_COUNTS_FILES']['test'])
 
         for feat_type in params['FEATURE_NAMES']:
-            for split,num_cap in zip(['train', 'val', 'test'],[num_captions_train, num_captions_val, num_captions_test]):
-                list_files = base_path+'/'+params['FRAMES_LIST_FILES'][split] % feat_type
-                counts_files = base_path+'/'+params['FRAMES_COUNTS_FILES'][split] % feat_type
-                
+            for split, num_cap in zip(['train', 'val', 'test'],
+                                      [num_captions_train, num_captions_val, num_captions_test]):
+                list_files = base_path + '/' + params['FRAMES_LIST_FILES'][split] % feat_type
+                counts_files = base_path + '/' + params['FRAMES_COUNTS_FILES'][split] % feat_type
+
                 ds.setInput([list_files, counts_files],
                             split,
                             type=params['INPUT_DATA_TYPE'],
@@ -80,7 +82,7 @@ def build_dataset(params):
                             feat_len=params['IMG_FEAT_SIZE'])
 
         if len(params['INPUTS_IDS_DATASET']) > 1:
-            ds.setInput(base_path+'/'+params['DESCRIPTION_FILES']['train'],
+            ds.setInput(base_path + '/' + params['DESCRIPTION_FILES']['train'],
                         'train',
                         type='text',
                         id=params['INPUTS_IDS_DATASET'][1],
@@ -97,22 +99,21 @@ def build_dataset(params):
             ds.setInput(None, 'val', type='ghost', id=params['INPUTS_IDS_DATASET'][1], required=False)
             ds.setInput(None, 'test', type='ghost', id=params['INPUTS_IDS_DATASET'][1], required=False)
 
-
         # Set inputs for temporally-linked samples
         if '-linked' in params['DATASET_NAME']:
             # Set input captions from previous event/video
             ds, repeat_images = insertTemporallyLinkedCaptions(ds, params)
             ds.setInput([],
                         'val',
-                        type = 'text',
-                        id = params['INPUTS_IDS_DATASET'][2],
-                        build_vocabulary = params['OUTPUTS_IDS_DATASET'][0],
-                        tokenization = params['TOKENIZATION_METHOD'],
-                        fill = params['FILL'],
-                        pad_on_batch = True,
-                        max_text_len = params['MAX_OUTPUT_TEXT_LEN'],
-                        min_occ = params['MIN_OCCURRENCES_VOCAB'],
-                        required = False)
+                        type='text',
+                        id=params['INPUTS_IDS_DATASET'][2],
+                        build_vocabulary=params['OUTPUTS_IDS_DATASET'][0],
+                        tokenization=params['TOKENIZATION_METHOD'],
+                        fill=params['FILL'],
+                        pad_on_batch=True,
+                        max_text_len=params['MAX_OUTPUT_TEXT_LEN'],
+                        min_occ=params['MIN_OCCURRENCES_VOCAB'],
+                        required=False)
             ds.setInput([],
                         'test',
                         type='text',
@@ -124,11 +125,10 @@ def build_dataset(params):
                         max_text_len=params['MAX_OUTPUT_TEXT_LEN'],
                         min_occ=params['MIN_OCCURRENCES_VOCAB'],
                         required=False)
-        
+
         # Process dataset for keeping only one caption per video and storing the rest in a dict() with the following format:
         #        ds.extra_variables[set_name][id_output][img_position] = [cap1, cap2, cap3, ..., capN]
-        keep_n_captions(ds, repeat=[num_captions_val, num_captions_test], n=1, set_names=['val','test'])
-
+        keep_n_captions(ds, repeat=[num_captions_val, num_captions_test], n=1, set_names=['val', 'test'])
 
         if '-linked' in params['DATASET_NAME']:
             # Set previous data indices
@@ -137,19 +137,22 @@ def build_dataset(params):
                     rep = repeat_images[s]
                 else:
                     rep = 1
-                ds.setInput(base_path + '/' + file, s,
-                            type='id', id=params['INPUTS_IDS_DATASET'][3],
+                ds.setInput(base_path + '/' + file,
+                            s,
+                            type='id',
+                            id=params['INPUTS_IDS_DATASET'][3],
                             repeat_set=rep)
 
         # We have finished loading the dataset, now we can store it for using it in the future
         saveDataset(ds, params['DATASET_STORE_PATH'])
     else:
         # We can easily recover it with a single line
-        ds = loadDataset(params['DATASET_STORE_PATH']+'/Dataset_'+params['DATASET_NAME']+'.pkl')
+        ds = loadDataset(params['DATASET_STORE_PATH'] + '/Dataset_' + params['DATASET_NAME'] + '.pkl')
 
     # Load vocabulary-related parameters of dataset used for pre-training
     if params['PRE_TRAINED_DATASET_NAME'] is not None:
-        dataset_pretrained = loadDataset(params['DATASET_STORE_PATH']+'Dataset_'+params['PRE_TRAINED_DATASET_NAME']+'.pkl')
+        dataset_pretrained = loadDataset(
+            params['DATASET_STORE_PATH'] + 'Dataset_' + params['PRE_TRAINED_DATASET_NAME'] + '.pkl')
         for id_new, id_old in params['VOCABULARIES_MAPPING'].iteritems():
             ds.vocabulary[id_new] = copy.deepcopy(dataset_pretrained.vocabulary[id_old])
             ds.vocabulary_len[id_new] = copy.deepcopy(dataset_pretrained.vocabulary_len[id_old])
@@ -157,59 +160,60 @@ def build_dataset(params):
     return ds
 
 
-def keep_n_captions(ds, repeat, n=1, set_names=['val','test']):
+def keep_n_captions(ds, repeat, n=1, set_names=['val', 'test']):
     ''' Keeps only n captions per image and stores the rest in dictionaries for a later evaluation
     '''
-    
-    for s,r in zip(set_names, repeat):
-        logging.info('Keeping '+str(n)+' captions per input on the '+str(s)+' set.')
-        
+
+    for s, r in zip(set_names, repeat):
+        logging.info('Keeping ' + str(n) + ' captions per input on the ' + str(s) + ' set.')
+
         ds.extra_variables[s] = dict()
-        exec('n_samples = ds.len_'+s)
-        
+        exec ('n_samples = ds.len_' + s)
+
         # Process inputs
         for id_in in ds.ids_inputs:
             new_X = []
             if id_in in ds.optional_inputs:
                 try:
-                    exec('X = ds.X_'+s)
+                    exec ('X = ds.X_' + s)
                     i = 0
                     for next_repeat in r:
                         for j in range(n):
-                            new_X.append(X[id_in][i+j])
+                            new_X.append(X[id_in][i + j])
                         i += next_repeat
-                    exec('ds.X_'+s+'[id_in] = new_X')
-                except: pass
+                    exec ('ds.X_' + s + '[id_in] = new_X')
+                except:
+                    pass
             else:
-                exec('X = ds.X_'+s)
+                exec ('X = ds.X_' + s)
                 i = 0
                 for next_repeat in r:
                     for j in range(n):
-                        new_X.append(X[id_in][i+j])
+                        new_X.append(X[id_in][i + j])
                     i += next_repeat
-                exec('ds.X_'+s+'[id_in] = new_X')
+                exec ('ds.X_' + s + '[id_in] = new_X')
         # Process outputs
         for id_out in ds.ids_outputs:
             new_Y = []
-            exec('Y = ds.Y_'+s)
+            exec ('Y = ds.Y_' + s)
             dict_Y = dict()
             count_samples = 0
             i = 0
             for next_repeat in r:
                 dict_Y[count_samples] = []
                 for j in range(next_repeat):
-                    if(j < n):
-                        new_Y.append(Y[id_out][i+j])
-                    dict_Y[count_samples].append(Y[id_out][i+j])
+                    if j < n:
+                        new_Y.append(Y[id_out][i + j])
+                    dict_Y[count_samples].append(Y[id_out][i + j])
                 count_samples += 1
                 i += next_repeat
-            exec('ds.Y_'+s+'[id_out] = new_Y')
+            exec ('ds.Y_' + s + '[id_out] = new_Y')
             # store dictionary with vid_pos -> [cap1, cap2, cap3, ..., capNi]
             ds.extra_variables[s][id_out] = dict_Y
-    
+
         new_len = len(new_Y)
-        exec('ds.len_'+s+' = new_len')
-        logging.info('Samples reduced to '+str(new_len)+' in '+s+' set.')
+        exec ('ds.len_' + s + ' = new_len')
+        logging.info('Samples reduced to ' + str(new_len) + ' in ' + s + ' set.')
 
 
 def insertTemporallyLinkedCaptions(ds, params, set_names=['train']):
@@ -258,7 +262,7 @@ def insertTemporallyLinkedCaptions(ds, params, set_names=['train']):
         final_outputs = []
         for i, link in enumerate(links):
             ini_out = np.sum(num_cap[:i])
-            these_outputs = outputs[ini_out:ini_out+num_cap[i]]
+            these_outputs = outputs[ini_out:ini_out + num_cap[i]]
             # first sample in the temporally-linked sequence
             if link == -1:
                 images_repeat.append(num_cap[i])
@@ -266,9 +270,9 @@ def insertTemporallyLinkedCaptions(ds, params, set_names=['train']):
                     final_outputs.append(out)
                     final_inputs.append('')
             else:
-                prev_ini_out = np.sum(num_cap[:i-1])
-                prev_outputs = outputs[prev_ini_out:prev_ini_out+num_cap[i-1]]
-                images_repeat.append(num_cap[i]*num_cap[link])
+                prev_ini_out = np.sum(num_cap[:i - 1])
+                prev_outputs = outputs[prev_ini_out:prev_ini_out + num_cap[i - 1]]
+                images_repeat.append(num_cap[i] * num_cap[link])
                 for n in range(num_cap[link]):
                     for out in these_outputs:
                         final_outputs.append(out)
@@ -320,15 +324,15 @@ def insertTemporallyLinkedCaptions(ds, params, set_names=['train']):
 
         # Set new input captions from previous temporally-linked event/video
         ds.setInput(final_inputs,
-                     s,
-                     type='text',
-                     id=params['INPUTS_IDS_DATASET'][2],
-                     build_vocabulary=params['OUTPUTS_IDS_DATASET'][0],
-                     tokenization=params['TOKENIZATION_METHOD'],
-                     fill=params['FILL'],
-                     pad_on_batch=True,
-                     max_text_len=params['MAX_OUTPUT_TEXT_LEN'],
-                     min_occ=params['MIN_OCCURRENCES_VOCAB'])
+                    s,
+                    type='text',
+                    id=params['INPUTS_IDS_DATASET'][2],
+                    build_vocabulary=params['OUTPUTS_IDS_DATASET'][0],
+                    tokenization=params['TOKENIZATION_METHOD'],
+                    fill=params['FILL'],
+                    pad_on_batch=True,
+                    max_text_len=params['MAX_OUTPUT_TEXT_LEN'],
+                    min_occ=params['MIN_OCCURRENCES_VOCAB'])
 
         repeat_images[s] = images_repeat
 

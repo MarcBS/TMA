@@ -94,7 +94,13 @@ def train_model(params):
                        'eval_on_sets': params['EVAL_ON_SETS_KERAS'], 'n_parallel_loaders': params['PARALLEL_LOADERS'],
                        'extra_callbacks': callbacks, 'reload_epoch': params['RELOAD'], 'epoch_offset': params['RELOAD'],
                        'data_augmentation': params['DATA_AUGMENTATION'],
-                       'patience': params.get('PATIENCE', 0), 'metric_check': params.get('STOP_METRIC', None)}
+                       'patience': params.get('PATIENCE', 0),# early stopping parameters
+                       'metric_check': params.get('STOP_METRIC', None),
+                       'eval_on_epochs': params.get('EVAL_EACH_EPOCHS', True),
+                       'each_n_epochs': params.get('EVAL_EACH', 1),
+                       'start_eval_on_epoch': params.get('START_EVAL_ON_EPOCH', 0)
+                       }
+
     video_model.trainNet(dataset, training_params)
 
     total_end_time = timer()

@@ -3,8 +3,8 @@ def load_parameters():
         Loads the defined parameters
     """
     # Input data params
-    #DATA_ROOT_PATH = '/media/HDD_2TB/DATASETS/EDUB-SegDesc/'        # Root path to the data
-    DATA_ROOT_PATH = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
+    DATA_ROOT_PATH = '/media/HDD_2TB/DATASETS/EDUB-SegDesc/'        # Root path to the data
+    #DATA_ROOT_PATH = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
 
     # preprocessed features
     DATASET_NAME = 'EDUB-SegDesc_features-linked'          # Dataset name (add '-linked' suffix for using
@@ -63,9 +63,9 @@ def load_parameters():
 
     # Evaluation params
     METRICS = ['coco']  # Metric used for evaluating model after each epoch (leave empty if only prediction is required)
-    EVAL_ON_SETS = ['val', 'test']                # Possible values: 'train', 'val' and 'test' (external evaluator)
-    EVAL_ON_SETS_KERAS = []                       # Possible values: 'train', 'val' and 'test' (Keras' evaluator)
-    START_EVAL_ON_EPOCH = 1                       # First epoch where the model will be evaluated
+    EVAL_ON_SETS = ['val', 'test']                 # Possible values: 'train', 'val' and 'test' (external evaluator)
+    EVAL_ON_SETS_KERAS = []                        # Possible values: 'train', 'val' and 'test' (Keras' evaluator)
+    START_EVAL_ON_EPOCH = 0                        # First epoch where the model will be evaluated
     EVAL_EACH_EPOCHS = False                       # Select whether evaluate between N epochs or N updates
     EVAL_EACH = 50                                 # Sets the evaluation frequency (epochs or updates)
 
@@ -75,7 +75,7 @@ def load_parameters():
     BEAM_SEARCH = True                            # Switches on-off the beam search procedure
     BEAM_SIZE = 10                                # Beam size (in case of BEAM_SEARCH == True)
     BEAM_SEARCH_COND_INPUT = 1                    # Index of the conditional input used in beam search (i.e., state_below)
-    OPTIMIZED_SEARCH = True                      # Compute annotations only a single time per sample
+    OPTIMIZED_SEARCH = True                       # Compute annotations only a single time per sample
     NORMALIZE_SAMPLING = True                     # Normalize hypotheses scores according to their length
     ALPHA_FACTOR = .6                             # Normalization according to length**ALPHA_FACTOR
                                                   # (see: arxiv.org/abs/1609.08144)
@@ -84,7 +84,7 @@ def load_parameters():
     SAMPLE_ON_SETS = ['train', 'val']             # Possible values: 'train', 'val' and 'test'
     N_SAMPLES = 5                                 # Number of samples generated
     START_SAMPLING_ON_EPOCH = 0                   # First epoch where the model will be evaluated
-    SAMPLE_EACH_UPDATES = 50                      # Sampling frequency (default 450)
+    SAMPLE_EACH_UPDATES = 500                     # Sampling frequency (default 450)
 
     # Word representation params
     TOKENIZATION_METHOD = 'tokenize_icann'        # Select which tokenization we'll apply:
@@ -105,7 +105,7 @@ def load_parameters():
                                                   # otherwise it will be truncated to these most frequent words.
     MAX_OUTPUT_TEXT_LEN = 30                      # Maximum length of the output sequence
                                                   # set to 0 if we want to use the whole answer as a single class
-    MAX_OUTPUT_TEXT_LEN_TEST = 120                # Maximum length of the output sequence during test time
+    MAX_OUTPUT_TEXT_LEN_TEST = 50                 # Maximum length of the output sequence during test time
     MIN_OCCURRENCES_VOCAB = 0                     # Minimum number of occurrences allowed for the words in the vocabulay.
 
     # Optimizer parameters (see model.compile() function)
@@ -114,10 +114,10 @@ def load_parameters():
 
     OPTIMIZER = 'Adam'                            # Optimizer
     LR = 0.001                                    # Learning rate. Recommended values - Adam 0.001 - Adadelta 1.0
-    CLIP_C = 1.                                   # During training, clip gradients to this norm
+    CLIP_C = 10.                                  # During training, clip gradients to this norm
     SAMPLE_WEIGHTS = True                         # Select whether we use a weights matrix (mask) for the data outputs
-    LR_DECAY = 1                               # Minimum number of epochs before the next LR decay. Set to None if don't want to decay the learning rate
-    LR_GAMMA = 0.8                                # Multiplier used for decreasing the LR
+    LR_DECAY = 1                                  # Minimum number of epochs before the next LR decay. Set to None if don't want to decay the learning rate
+    LR_GAMMA = 0.95                               # Multiplier used for decreasing the LR
 
     # Training parameters
     MAX_EPOCH = 50                                # Stop when computed this number of epochs
@@ -130,7 +130,7 @@ def load_parameters():
 
     # Early stop parameters
     EARLY_STOP = True                             # Turns on/off the early stop protocol
-    PATIENCE = 20                                 # We'll stop if the val STOP_METRIC does not improve after this
+    PATIENCE = 10                                 # We'll stop if the val STOP_METRIC does not improve after this
                                                   # number of evaluations
     STOP_METRIC = 'Bleu_4'                        # Metric for the stop
 
@@ -169,7 +169,7 @@ def load_parameters():
     # Additional Fully-Connected layers's sizes applied before softmax.
     #       Here we should specify the activation function and the output dimension
     #       (e.g DEEP_OUTPUT_LAYERS = [('tanh', 600), ('relu', 400), ('relu', 200)])
-    DEEP_OUTPUT_LAYERS = [('maxout', TARGET_TEXT_EMBEDDING_SIZE/2)]
+    DEEP_OUTPUT_LAYERS = []#('maxout', TARGET_TEXT_EMBEDDING_SIZE/2)]
 
     # Regularizers
     WEIGHT_DECAY = 1e-4                           # L2 regularization
@@ -182,7 +182,7 @@ def load_parameters():
     RECURRENT_DROPOUT_P = 0.5                     # Percentage of units to drop in recurrent layers
 
     USE_NOISE = True                              # Use gaussian noise during training
-    NOISE_AMOUNT = 0.01                           # Amount of noise
+    NOISE_AMOUNT = 0.03                           # Amount of noise
 
     USE_BATCH_NORMALIZATION = True                # If True it is recommended to deactivate Dropout
     BATCH_NORMALIZATION_MODE = 1                  # See documentation in Keras' BN
@@ -198,7 +198,7 @@ def load_parameters():
                  '_lstmenc_' + str(ENCODER_HIDDEN_SIZE) + \
                  '_lstm_' + str(DECODER_HIDDEN_SIZE) + \
                  '_deepout_' + '_'.join([layer[0] for layer in DEEP_OUTPUT_LAYERS]) + \
-                 '_' + OPTIMIZER
+                 '_' + OPTIMIZER + '_lr_' + str(LR) + '_decay_' + str(LR_DECAY) + '-' + str(LR_GAMMA)
 
     MODEL_NAME += EXTRA_NAME
 
