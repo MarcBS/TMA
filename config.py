@@ -105,7 +105,7 @@ def load_parameters():
                                                   # otherwise it will be truncated to these most frequent words.
     MAX_OUTPUT_TEXT_LEN = 30                      # Maximum length of the output sequence
                                                   # set to 0 if we want to use the whole answer as a single class
-    MAX_OUTPUT_TEXT_LEN_TEST = 120                # Maximum length of the output sequence during test time
+    MAX_OUTPUT_TEXT_LEN_TEST = 50                 # Maximum length of the output sequence during test time
     MIN_OCCURRENCES_VOCAB = 0                     # Minimum number of occurrences allowed for the words in the vocabulay.
 
     # Optimizer parameters (see model.compile() function)
@@ -130,7 +130,7 @@ def load_parameters():
 
     # Early stop parameters
     EARLY_STOP = True                             # Turns on/off the early stop protocol
-    PATIENCE = 20                                 # We'll stop if the val STOP_METRIC does not improve after this
+    PATIENCE = 10                                 # We'll stop if the val STOP_METRIC does not improve after this
                                                   # number of evaluations
     STOP_METRIC = 'Bleu_4'                        # Metric for the stop
 
@@ -182,7 +182,7 @@ def load_parameters():
     RECURRENT_DROPOUT_P = 0.5                     # Percentage of units to drop in recurrent layers
 
     USE_NOISE = True                              # Use gaussian noise during training
-    NOISE_AMOUNT = 0.01                           # Amount of noise
+    NOISE_AMOUNT = 0.03                           # Amount of noise
 
     USE_BATCH_NORMALIZATION = True                # If True it is recommended to deactivate Dropout
     BATCH_NORMALIZATION_MODE = 1                  # See documentation in Keras' BN

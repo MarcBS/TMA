@@ -731,8 +731,8 @@ class VideoDesc_Model(Model_Wrapper):
         if params['BEAM_SEARCH'] and params['OPTIMIZED_SEARCH']:
             # First, we need a model that outputs the preprocessed input + initial h state
             # for applying the initial forward pass
-            model_init_input = [video, next_words]
-            model_init_output = [softout, input_video, h_state]
+            model_init_input = [video, next_words, prev_desc]
+            model_init_output = [softout, input_video, prev_desc_enc, h_state]
             if params['RNN_TYPE'] == 'LSTM':
                 model_init_output.append(h_memory)
 
@@ -761,7 +761,8 @@ class VideoDesc_Model(Model_Wrapper):
                 preprocessed_size = params['IMG_FEAT_SIZE']
 
             # Define inputs
-            preprocessed_annotations = Input(name='preprocessed_input', shape=tuple([params['NUM_FRAMES'], preprocessed_size]))
+            preprocessed_annotations = Input(name='preprocessed_input',
+                                             shape=tuple([params['NUM_FRAMES'], preprocessed_size]))
             preprocessed_prev_description = Input(name='preprocessed_input2',
                                                   shape=tuple([params['DECODER_HIDDEN_SIZE']]))
             prev_h_state = Input(name='prev_state', shape=tuple([params['DECODER_HIDDEN_SIZE']]))
@@ -775,9 +776,11 @@ class VideoDesc_Model(Model_Wrapper):
             proj_h = rnn_output[0]
             x_att = rnn_output[1]
             alphas = rnn_output[2]
-            h_state = rnn_output[3]
+            prev_desc_att = rnn_output[3]
+            prev_desc_alphas = rnn_output[4]
+            h_state = rnn_output[5]
             if params['RNN_TYPE'] == 'LSTM':
-                h_memory = rnn_output[4]
+                h_memory = rnn_output[6]
             for reg in shared_reg_proj_h:
                 proj_h = reg(proj_h)
 
@@ -787,7 +790,6 @@ class VideoDesc_Model(Model_Wrapper):
             out_layer_emb = shared_FC_emb(emb)
             out_layer_prev = shared_FC_prev(prev_desc_enc)
             out_layer_prev = shared_Lambda_Broadcast(out_layer_prev)
-
 
             for (reg_out_layer_mlp, reg_out_layer_ctx, reg_out_layer_emb, reg_out_layer_prev) in zip(
                     shared_reg_out_layer_mlp,
@@ -810,14 +812,13 @@ class VideoDesc_Model(Model_Wrapper):
 
             # Softmax
             softout = shared_FC_soft(out_layer)
-            model_next_inputs = [next_words, preprocessed_annotations, prev_h_state]
-            model_next_outputs = [softout, preprocessed_annotations, h_state]
+            model_next_inputs = [next_words, preprocessed_annotations, preprocessed_prev_description, prev_h_state]
+            model_next_outputs = [softout, preprocessed_annotations, preprocessed_prev_description, h_state]
             if params['RNN_TYPE'] == 'LSTM':
                 model_next_inputs.append(prev_h_memory)
                 model_next_outputs.append(h_memory)
 
-            self.model_next = Model(input=model_next_inputs,
-                                    output=model_next_outputs)
+            self.model_next = Model(input=model_next_inputs, output=model_next_outputs)
 
             # Store inputs and outputs names for model_next
             # first input must be previous word
