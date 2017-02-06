@@ -471,7 +471,6 @@ class VideoDesc_Model(Model_Wrapper):
                 self.matchings_init_to_next['next_memory'] = 'prev_memory'
                 self.matchings_next_to_next['next_memory'] = 'prev_memory'
 
-
     def TemporallyLinkedVideoDescriptionNoAtt(self, params):
         """
         Video captioning with:
