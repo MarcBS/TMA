@@ -485,6 +485,9 @@ class VideoDesc_Model(Model_Wrapper):
         :param params:
         :return:
         """
+        # Prepare variables for temporally linked samples
+        self.ids_temporally_linked_inputs = [self.ids_inputs[2]]
+        self.matchings_sample_to_next_sample = {self.ids_outputs[0]: self.ids_inputs[2]}
 
         # Video model
         #video = Input(name=self.ids_inputs[0], shape=tuple([params['NUM_FRAMES'], params['IMG_FEAT_SIZE']]))
@@ -762,11 +765,11 @@ class VideoDesc_Model(Model_Wrapper):
 
             # Define inputs
             preprocessed_annotations = Input(name='preprocessed_input',
-                                             shape=tuple([params['NUM_FRAMES'], preprocessed_size]))
+                                             shape=tuple([None, preprocessed_size]))
             preprocessed_prev_description = Input(name='preprocessed_input2',
                                                   shape=tuple([params['DECODER_HIDDEN_SIZE']]))
             prev_h_state = Input(name='prev_state', shape=tuple([params['DECODER_HIDDEN_SIZE']]))
-            input_attentional_decoder = [emb, preprocessed_annotations,  preprocessed_prev_description, prev_h_state]
+            input_attentional_decoder = [emb, preprocessed_annotations, preprocessed_prev_description, prev_h_state]
 
             if params['RNN_TYPE'] == 'LSTM':
                 prev_h_memory = Input(name='prev_memory', shape=tuple([params['DECODER_HIDDEN_SIZE']]))
@@ -822,7 +825,7 @@ class VideoDesc_Model(Model_Wrapper):
 
             # Store inputs and outputs names for model_next
             # first input must be previous word
-            self.ids_inputs_next = [self.ids_inputs[1]] + ['preprocessed_input', 'preprocessed_input2', 'prev_state']
+            self.ids_inputs_next = [self.ids_inputs[1]] + ['preprocessed_input',  'preprocessed_input2', 'prev_state']
             # first output must be the output probs.
             self.ids_outputs_next = self.ids_outputs + ['preprocessed_input', 'preprocessed_input2', 'next_state']
 
