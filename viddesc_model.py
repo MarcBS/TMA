@@ -596,7 +596,7 @@ class VideoDesc_Model(Model_Wrapper):
                                   activation=params['INIT_LAYERS'][-1]
                                   )(ctx_mean)
             initial_state = Regularize(initial_state, params, name='initial_state')
-            input_attentional_decoder = [emb, input_video, initial_state]
+            input_attentional_decoder = [emb, input_video, prev_desc_enc, initial_state]
 
             if params['RNN_TYPE'] == 'LSTM':
                 initial_memory = Dense(params['DECODER_HIDDEN_SIZE'], name='initial_memory',
@@ -605,13 +605,13 @@ class VideoDesc_Model(Model_Wrapper):
                 initial_memory = Regularize(initial_memory, params, name='initial_memory')
                 input_attentional_decoder.append(initial_memory)
         else:
-            input_attentional_decoder = [emb, input_video]
+            input_attentional_decoder = [emb, input_video, prev_desc_enc]
         ##################################################################
         #                       DECODER
         ##################################################################
 
         # 3.3. Attentional decoder
-        sharedAttRNNCond = eval('Att' + params['RNN_TYPE'] + 'Cond')(params['DECODER_HIDDEN_SIZE'],
+        sharedAttRNNCond = eval('Att' + params['RNN_TYPE'] + 'Cond2Inputs')(params['DECODER_HIDDEN_SIZE'],
                                                                      W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
                                                                      U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
                                                                      V_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
@@ -629,15 +629,19 @@ class VideoDesc_Model(Model_Wrapper):
                                                                      return_sequences=True,
                                                                      return_extra_variables=True,
                                                                      return_states=True,
+                                                                     attend_on_both=False,
                                                                      name='decoder_Att' + params['RNN_TYPE'] + 'Cond')
 
         rnn_output = sharedAttRNNCond(input_attentional_decoder)
         proj_h = rnn_output[0]
         x_att = rnn_output[1]
         alphas = rnn_output[2]
-        h_state = rnn_output[3]
+        prev_desc_att = rnn_output[3]
+        prev_desc_alphas = rnn_output[4]
+        h_state = rnn_output[5]
+
         if params['RNN_TYPE'] == 'LSTM':
-            h_memory = rnn_output[4]
+            h_memory = rnn_output[6]
 
         [proj_h, shared_reg_proj_h] = Regularize(proj_h, params, shared_layers=True, name='proj_h0')
 
@@ -737,7 +741,7 @@ class VideoDesc_Model(Model_Wrapper):
             # Store inputs and outputs names for model_init
             self.ids_inputs_init = self.ids_inputs
             # first output must be the output probs.
-            self.ids_outputs_init = self.ids_outputs + ['preprocessed_input', 'next_state']
+            self.ids_outputs_init = self.ids_outputs + ['preprocessed_input', 'preprocessed_input2', 'next_state']
             if params['RNN_TYPE'] == 'LSTM':
                 self.ids_outputs_init.append('next_memory')
 
@@ -758,8 +762,10 @@ class VideoDesc_Model(Model_Wrapper):
 
             # Define inputs
             preprocessed_annotations = Input(name='preprocessed_input', shape=tuple([params['NUM_FRAMES'], preprocessed_size]))
+            preprocessed_prev_description = Input(name='preprocessed_input2',
+                                                  shape=tuple([params['DECODER_HIDDEN_SIZE']]))
             prev_h_state = Input(name='prev_state', shape=tuple([params['DECODER_HIDDEN_SIZE']]))
-            input_attentional_decoder = [emb, preprocessed_annotations, prev_h_state]
+            input_attentional_decoder = [emb, preprocessed_annotations,  preprocessed_prev_description, prev_h_state]
 
             if params['RNN_TYPE'] == 'LSTM':
                 prev_h_memory = Input(name='prev_memory', shape=tuple([params['DECODER_HIDDEN_SIZE']]))
@@ -815,14 +821,16 @@ class VideoDesc_Model(Model_Wrapper):
 
             # Store inputs and outputs names for model_next
             # first input must be previous word
-            self.ids_inputs_next = [self.ids_inputs[1]] + ['preprocessed_input', 'prev_state']
+            self.ids_inputs_next = [self.ids_inputs[1]] + ['preprocessed_input', 'preprocessed_input2', 'prev_state']
             # first output must be the output probs.
-            self.ids_outputs_next = self.ids_outputs + ['preprocessed_input', 'next_state']
+            self.ids_outputs_next = self.ids_outputs + ['preprocessed_input', 'preprocessed_input2', 'next_state']
 
             # Input -> Output matchings from model_init to model_next and from model_next to model_next
             self.matchings_init_to_next = {'preprocessed_input': 'preprocessed_input',
+                                           'preprocessed_input2': 'preprocessed_input2',
                                            'next_state': 'prev_state'}
             self.matchings_next_to_next = {'preprocessed_input': 'preprocessed_input',
+                                           'preprocessed_input2': 'preprocessed_input2',
                                            'next_state': 'prev_state'}
             if params['RNN_TYPE'] == 'LSTM':
                 self.ids_inputs_next.append('prev_memory')
@@ -996,6 +1004,10 @@ class VideoDesc_Model(Model_Wrapper):
                                                                      Wa_regularizer=l2(params['WEIGHT_DECAY']),
                                                                      Ua_regularizer=l2(params['WEIGHT_DECAY']),
                                                                      ba_regularizer=l2(params['WEIGHT_DECAY']),
+                                                                     wa2_regularizer=l2(params['WEIGHT_DECAY']),
+                                                                     Wa2_regularizer=l2(params['WEIGHT_DECAY']),
+                                                                     Ua2_regularizer=l2(params['WEIGHT_DECAY']),
+                                                                     ba2_regularizer=l2(params['WEIGHT_DECAY']),
                                                                      dropout_W=params['RECURRENT_DROPOUT_P'] if params[
                                                                          'USE_RECURRENT_DROPOUT'] else None,
                                                                      dropout_U=params['RECURRENT_DROPOUT_P'] if params[
