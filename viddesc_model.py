@@ -569,7 +569,7 @@ class VideoDesc_Model(Model_Wrapper):
         prev_desc_emb = shared_emb(prev_desc)
 
         # LSTM for encoding the previous description
-        prev_desc_enc = eval(params['RNN_TYPE'])(params['DECODER_HIDDEN_SIZE'],
+        prev_desc_enc = Bidirectional(eval(params['RNN_TYPE'])(params['DECODER_HIDDEN_SIZE'],
                                                  W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
                                                  U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
                                                  b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
@@ -577,8 +577,8 @@ class VideoDesc_Model(Model_Wrapper):
                                                      'USE_RECURRENT_DROPOUT'] else None,
                                                  dropout_U=params['RECURRENT_DROPOUT_P'] if params[
                                                      'USE_RECURRENT_DROPOUT'] else None,
-                                                 return_sequences=False,
-                                                 name='encoder_prev_desc' + params['RNN_TYPE'])(prev_desc_emb)
+                                                 return_sequences=False),
+                                                 name='encoder_prev_desc' + params['RNN_TYPE'], merge_mode='concat')(prev_desc_emb)
         prev_desc_enc = Regularize(prev_desc_enc, params, name='prev_desc_enc')
 
         # LSTM initialization perceptrons with ctx mean
@@ -953,7 +953,7 @@ class VideoDesc_Model(Model_Wrapper):
         prev_desc_emb = shared_emb(prev_desc)
 
         # LSTM for encoding the previous description
-        prev_desc_enc = eval(params['RNN_TYPE'])(params['DECODER_HIDDEN_SIZE'],
+        prev_desc_enc = Bidirectional(eval(params['RNN_TYPE'])(params['DECODER_HIDDEN_SIZE'],
                                                  W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
                                                  U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
                                                  b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
@@ -961,7 +961,7 @@ class VideoDesc_Model(Model_Wrapper):
                                                      'USE_RECURRENT_DROPOUT'] else None,
                                                  dropout_U=params['RECURRENT_DROPOUT_P'] if params[
                                                      'USE_RECURRENT_DROPOUT'] else None,
-                                                 return_sequences=True,
+                                                 return_sequences=True), merge_mode='concat',
                                                  name='encoder_prev_desc' + params['RNN_TYPE'])(prev_desc_emb)
         prev_desc_enc = Regularize(prev_desc_enc, params, name='prev_desc_enc')
 
