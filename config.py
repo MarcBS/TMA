@@ -166,6 +166,7 @@ def load_parameters():
 
     DECODER_HIDDEN_SIZE = 484                     # For models with LSTM decoder (ABiViRNet 484)
     ADDITIONAL_OUTPUT_MERGE_MODE = 'sum'          # Merge mode for the skip connections
+    WEIGHTED_MERGE = True       # Weither we want to apply a conventional or a weighted merge
 
     IMG_EMBEDDING_LAYERS = []  # FC layers for visual embedding
                                # Here we should specify the activation function and the output dimension
