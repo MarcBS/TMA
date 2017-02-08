@@ -9,7 +9,7 @@ def load_parameters():
     # preprocessed features
     DATASET_NAME = 'EDUB-SegDesc_features-linked'          # Dataset name (add '-linked' suffix for using
                                                     # dataset with temporally-linked training data)
-    PRE_TRAINED_DATASET_NAME = None #'MSVD_features'      # Dataset name for reusing vocabulary of pre-trained model
+    PRE_TRAINED_DATASET_NAME = 'MSVD_features'      # Dataset name for reusing vocabulary of pre-trained model
                                                     # (only applicable if we are using a pre-trained model, default None)
     VOCABULARIES_MAPPING = {'description': 'description',
                             'state_below': 'description',
@@ -78,7 +78,7 @@ def load_parameters():
     BEAM_SEARCH = True                            # Switches on-off the beam search procedure
     BEAM_SIZE = 10                                # Beam size (in case of BEAM_SEARCH == True)
     BEAM_SEARCH_COND_INPUT = 1                    # Index of the conditional input used in beam search (i.e., state_below)
-    OPTIMIZED_SEARCH = False                       # Compute annotations only a single time per sample
+    OPTIMIZED_SEARCH = True                       # Compute annotations only a single time per sample
     NORMALIZE_SAMPLING = True                     # Normalize hypotheses scores according to their length
     ALPHA_FACTOR = .6                             # Normalization according to length**ALPHA_FACTOR
                                                   # (see: arxiv.org/abs/1609.08144)
@@ -87,7 +87,7 @@ def load_parameters():
     SAMPLE_ON_SETS = ['train', 'val']             # Possible values: 'train', 'val' and 'test'
     N_SAMPLES = 5                                 # Number of samples generated
     START_SAMPLING_ON_EPOCH = 0                   # First epoch where the model will be evaluated
-    SAMPLE_EACH_UPDATES = 150                     # Sampling frequency (default 450)
+    SAMPLE_EACH_UPDATES = 50                     # Sampling frequency (default 450)
 
     # Word representation params
     TOKENIZATION_METHOD = 'tokenize_icann'        # Select which tokenization we'll apply:
@@ -133,7 +133,7 @@ def load_parameters():
 
     # Early stop parameters
     EARLY_STOP = True                             # Turns on/off the early stop protocol
-    PATIENCE = 20                                 # We'll stop if the val STOP_METRIC does not improve after this
+    PATIENCE = 20                                # We'll stop if the val STOP_METRIC does not improve after this
                                                   # number of evaluations
     STOP_METRIC = 'Bleu_4'                        # Metric for the stop
 
@@ -157,8 +157,12 @@ def load_parameters():
     N_LAYERS_ENCODER = 1                          # Stack this number of encoding layers
     BIDIRECTIONAL_DEEP_ENCODER = True             # Use bidirectional encoder in all encoding layers
 
+    BIDIRECTIONAL_ENCODER_PREV_OUT = False        # Use bidirectional encoder on the previous output
+    ENCODER_HIDDEN_SIZE_PREV_OUT = 484            # Dimensions of the encoder on the previous output
+
     DECODER_HIDDEN_SIZE = 484   # For models with LSTM decoder (ABiViRNet 484)
     ADDITIONAL_OUTPUT_MERGE_MODE = 'sum' # Merge mode for the skip connections
+    WEIGHTED_MERGE = True       # Weither we want to apply a conventional or a weighted merge
 
     IMG_EMBEDDING_LAYERS = []  # FC layers for visual embedding
                                # Here we should specify the activation function and the output dimension
@@ -195,7 +199,7 @@ def load_parameters():
     USE_L2 = False                                # L2 normalization on the features
 
     # Results plot and models storing parameters
-    EXTRA_NAME = 'new_vocab'                    # This will be appended to the end of the model name
+    EXTRA_NAME = 'weighted_merge'                    # This will be appended to the end of the model name
     MODEL_NAME = DATASET_NAME + '_' + MODEL_TYPE +\
                  '_txtemb_' + str(TARGET_TEXT_EMBEDDING_SIZE) + \
                  '_imgemb_' + '_'.join([layer[0] for layer in IMG_EMBEDDING_LAYERS]) + \

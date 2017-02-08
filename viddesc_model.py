@@ -3,7 +3,7 @@ from keras.engine.topology import merge
 from keras.layers import TimeDistributed, Bidirectional
 from keras.layers.embeddings import Embedding
 from keras.layers.recurrent import GRU, GRUCond, AttGRUCond, LSTM, LSTMCond, AttLSTMCond, AttLSTMCond2Inputs
-from keras.layers.core import Dense, Activation, Lambda, MaxoutDense, MaskedMean, PermuteGeneral, MaskLayer
+from keras.layers.core import Dense, Activation, Lambda, MaxoutDense, MaskedMean, PermuteGeneral, MaskLayer, WeightedMerge
 from keras.models import model_from_json, Model
 from keras.optimizers import Adam, RMSprop, Nadam, Adadelta, SGD
 from keras.regularizers import l2
@@ -569,16 +569,28 @@ class VideoDesc_Model(Model_Wrapper):
         prev_desc_emb = shared_emb(prev_desc)
 
         # LSTM for encoding the previous description
-        prev_desc_enc = Bidirectional(eval(params['RNN_TYPE'])(params['DECODER_HIDDEN_SIZE'],
-                                                 W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                 U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                 b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                 dropout_W=params['RECURRENT_DROPOUT_P'] if params[
-                                                     'USE_RECURRENT_DROPOUT'] else None,
-                                                 dropout_U=params['RECURRENT_DROPOUT_P'] if params[
-                                                     'USE_RECURRENT_DROPOUT'] else None,
-                                                 return_sequences=False),
-                                                 name='encoder_prev_desc' + params['RNN_TYPE'], merge_mode='concat')(prev_desc_emb)
+        if params['BIDIRECTIONAL_ENCODER_PREV_OUT']:
+            prev_desc_enc = Bidirectional(eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE_PREV_OUT'],
+                                                                   W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                   U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                   b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                   dropout_W=params['RECURRENT_DROPOUT_P'] if params[
+                                                                       'USE_RECURRENT_DROPOUT'] else None,
+                                                                   dropout_U=params['RECURRENT_DROPOUT_P'] if params[
+                                                                       'USE_RECURRENT_DROPOUT'] else None,
+                                                                   return_sequences=True), merge_mode='concat',
+                                          name='encoder_prev_desc' + params['RNN_TYPE'])(prev_desc_emb)
+        else:
+            prev_desc_enc = eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE_PREV_OUT'],
+                                                     W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                     U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                     b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                     dropout_W=params['RECURRENT_DROPOUT_P'] if params[
+                                                         'USE_RECURRENT_DROPOUT'] else None,
+                                                     dropout_U=params['RECURRENT_DROPOUT_P'] if params[
+                                                         'USE_RECURRENT_DROPOUT'] else None,
+                                                     return_sequences=True,
+                                                     name='encoder_prev_desc' + params['RNN_TYPE'])(prev_desc_emb)
         prev_desc_enc = Regularize(prev_desc_enc, params, name='prev_desc_enc')
 
         # LSTM initialization perceptrons with ctx mean
@@ -763,11 +775,16 @@ class VideoDesc_Model(Model_Wrapper):
             else:
                 preprocessed_size = params['IMG_FEAT_SIZE']
 
+            if params['BIDIRECTIONAL_ENCODER_PREV_OUT']:
+                preprocessed_prev_output_size = params['ENCODER_HIDDEN_SIZE_PREV_OUT'] * 2
+            else:
+                preprocessed_prev_output_size = params['ENCODER_HIDDEN_SIZE_PREV_OUT']
+
             # Define inputs
             preprocessed_annotations = Input(name='preprocessed_input',
                                              shape=tuple([None, preprocessed_size]))
             preprocessed_prev_description = Input(name='preprocessed_input2',
-                                                  shape=tuple([params['DECODER_HIDDEN_SIZE']]))
+                                                  shape=tuple([preprocessed_prev_output_size]))
             prev_h_state = Input(name='prev_state', shape=tuple([params['DECODER_HIDDEN_SIZE']]))
             input_attentional_decoder = [emb, preprocessed_annotations, preprocessed_prev_description, prev_h_state]
 
@@ -842,17 +859,20 @@ class VideoDesc_Model(Model_Wrapper):
                 self.matchings_init_to_next['next_memory'] = 'prev_memory'
                 self.matchings_next_to_next['next_memory'] = 'prev_memory'
 
+
     def TemporallyLinkedVideoDescriptionAtt(self, params):
         """
         Video captioning with:
             * Attention mechanism on video frames
             * Conditional LSTM for processing the video
-            * Feed forward layers:
-                + Context projected to output
-                + Last word projected to output
+            * Feed forward layers projected to output:
+                + Context
+                + Last word
+                + LSTM's hidden state
+                + Previous output
 
             * LSTM on output of previous sequence/video
-            * Attention mechanisme on words of previous output
+            * Attention mechanism on words of previous output
 
         :param params:
         :return:
@@ -953,16 +973,28 @@ class VideoDesc_Model(Model_Wrapper):
         prev_desc_emb = shared_emb(prev_desc)
 
         # LSTM for encoding the previous description
-        prev_desc_enc = Bidirectional(eval(params['RNN_TYPE'])(params['DECODER_HIDDEN_SIZE'],
-                                                 W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                 U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                 b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                 dropout_W=params['RECURRENT_DROPOUT_P'] if params[
-                                                     'USE_RECURRENT_DROPOUT'] else None,
-                                                 dropout_U=params['RECURRENT_DROPOUT_P'] if params[
-                                                     'USE_RECURRENT_DROPOUT'] else None,
-                                                 return_sequences=True), merge_mode='concat',
-                                                 name='encoder_prev_desc' + params['RNN_TYPE'])(prev_desc_emb)
+        if params['BIDIRECTIONAL_ENCODER_PREV_OUT']:
+            prev_desc_enc = Bidirectional(eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE_PREV_OUT'],
+                                                     W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                     U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                     b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                     dropout_W=params['RECURRENT_DROPOUT_P'] if params[
+                                                         'USE_RECURRENT_DROPOUT'] else None,
+                                                     dropout_U=params['RECURRENT_DROPOUT_P'] if params[
+                                                         'USE_RECURRENT_DROPOUT'] else None,
+                                                     return_sequences=True), merge_mode='concat',
+                                                     name='encoder_prev_desc' + params['RNN_TYPE'])(prev_desc_emb)
+        else:
+            prev_desc_enc = eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE_PREV_OUT'],
+                                                    W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                    U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                    b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                    dropout_W=params['RECURRENT_DROPOUT_P'] if params[
+                                                        'USE_RECURRENT_DROPOUT'] else None,
+                                                    dropout_U=params['RECURRENT_DROPOUT_P'] if params[
+                                                        'USE_RECURRENT_DROPOUT'] else None,
+                                                    return_sequences=True,
+                                                    name='encoder_prev_desc' + params['RNN_TYPE'])(prev_desc_emb)
         prev_desc_enc = Regularize(prev_desc_enc, params, name='prev_desc_enc')
 
         # LSTM initialization perceptrons with ctx mean
@@ -1080,8 +1112,14 @@ class VideoDesc_Model(Model_Wrapper):
                                                                  shared_layers=True, name='out_layer_prev')
 
         ### Merge of FC outputs
-        additional_output = merge([out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev],
-                                  mode=params['ADDITIONAL_OUTPUT_MERGE_MODE'], name='additional_input')
+        if params['WEIGHTED_MERGE']:
+            shared_merge = WeightedMerge(mode=params['ADDITIONAL_OUTPUT_MERGE_MODE'],
+                                         lambdas_regularizer=l2(params['WEIGHT_DECAY']),
+                                         name='additional_input')
+            additional_output = shared_merge([out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev])
+        else:
+            additional_output = merge([out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev],
+                                    mode=params['ADDITIONAL_OUTPUT_MERGE_MODE'], name='additional_input')
 
         # tanh activation
         shared_activation_tanh = Activation('tanh')
@@ -1157,11 +1195,16 @@ class VideoDesc_Model(Model_Wrapper):
             else:
                 preprocessed_size = params['IMG_FEAT_SIZE']
 
+            if params['BIDIRECTIONAL_ENCODER_PREV_OUT']:
+                preprocessed_prev_output_size = params['ENCODER_HIDDEN_SIZE_PREV_OUT'] * 2
+            else:
+                preprocessed_prev_output_size = params['ENCODER_HIDDEN_SIZE_PREV_OUT']
+
             # Define inputs
             preprocessed_annotations = Input(name='preprocessed_input',
                                              shape=tuple([None, preprocessed_size]))
             preprocessed_prev_description = Input(name='preprocessed_input2',
-                                                  shape=tuple([None, params['DECODER_HIDDEN_SIZE']]))
+                                                  shape=tuple([None, preprocessed_prev_output_size]))
             prev_h_state = Input(name='prev_state', shape=tuple([params['DECODER_HIDDEN_SIZE']]))
             input_attentional_decoder = [emb, preprocessed_annotations, preprocessed_prev_description, prev_h_state]
 
@@ -1198,7 +1241,10 @@ class VideoDesc_Model(Model_Wrapper):
                 out_layer_emb = reg_out_layer_emb(out_layer_emb)
                 out_layer_prev = reg_out_layer_prev(out_layer_prev)
 
-            additional_output = merge([out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev],
+            if params['WEIGHTED_MERGE']:
+                additional_output = shared_merge([out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev])
+            else:
+                additional_output = merge([out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev],
                                       mode=params['ADDITIONAL_OUTPUT_MERGE_MODE'], name='additional_input_model_next')
             out_layer = shared_activation_tanh(additional_output)
 
