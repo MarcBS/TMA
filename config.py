@@ -57,9 +57,11 @@ def load_parameters():
                             }
 
         INPUTS_IDS_DATASET.append('prev_description')
-        INPUTS_IDS_DATASET.append('link_index')
         INPUTS_IDS_MODEL.append('prev_description')
-        INPUTS_IDS_MODEL.append('link_index')
+
+        if '-upperbound' not in DATASET_NAME:
+            INPUTS_IDS_DATASET.append('link_index')
+            INPUTS_IDS_MODEL.append('link_index')
 
     # Evaluation params
     METRICS = ['coco']  # Metric used for evaluating model after each epoch (leave empty if only prediction is required)
@@ -84,7 +86,7 @@ def load_parameters():
     SAMPLE_ON_SETS = ['train', 'val']             # Possible values: 'train', 'val' and 'test'
     N_SAMPLES = 5                                 # Number of samples generated
     START_SAMPLING_ON_EPOCH = 0                   # First epoch where the model will be evaluated
-    SAMPLE_EACH_UPDATES = 500                     # Sampling frequency (default 450)
+    SAMPLE_EACH_UPDATES = 50                     # Sampling frequency (default 450)
 
     # Word representation params
     TOKENIZATION_METHOD = 'tokenize_icann'        # Select which tokenization we'll apply:
@@ -117,7 +119,7 @@ def load_parameters():
     CLIP_C = 10.                                  # During training, clip gradients to this norm
     SAMPLE_WEIGHTS = True                         # Select whether we use a weights matrix (mask) for the data outputs
     LR_DECAY = 1                                  # Minimum number of epochs before the next LR decay. Set to None if don't want to decay the learning rate
-    LR_GAMMA = 0.95                               # Multiplier used for decreasing the LR
+    LR_GAMMA = 0.995                               # Multiplier used for decreasing the LR
 
     # Training parameters
     MAX_EPOCH = 50                                # Stop when computed this number of epochs
@@ -191,7 +193,7 @@ def load_parameters():
     RECURRENT_DROPOUT_P = 0.5                     # Percentage of units to drop in recurrent layers
 
     USE_NOISE = True                              # Use gaussian noise during training
-    NOISE_AMOUNT = 0.03                           # Amount of noise
+    NOISE_AMOUNT = 0.01                           # Amount of noise
 
     USE_BATCH_NORMALIZATION = True                # If True it is recommended to deactivate Dropout
     BATCH_NORMALIZATION_MODE = 1                  # See documentation in Keras' BN
@@ -222,7 +224,7 @@ def load_parameters():
                       'initial_state': 'initial_state',
                       'initial_memory': 'initial_memory',
                       'target_word_embedding': 'target_word_embedding',
-                      'attlstmcond_1': 'decoder_AttLSTMCond2Inputs',
+                      'attlstmcond_1': 'decoder_AttLSTMCond2Inputs', #'decoder_AttLSTMCond',
                       'logit_ctx': 'logit_ctx',
                       'logit_lstm': 'logit_lstm',
                       'description': 'description'}

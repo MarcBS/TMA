@@ -102,35 +102,44 @@ def build_dataset(params):
         # Set inputs for temporally-linked samples
         if '-linked' in params['DATASET_NAME']:
             # Set input captions from previous event/video
-            ds, repeat_images = insertTemporallyLinkedCaptions(ds, params)
-            ds.setInput([],
-                        'val',
-                        type='text',
-                        id=params['INPUTS_IDS_DATASET'][2],
-                        build_vocabulary=params['OUTPUTS_IDS_DATASET'][0],
-                        tokenization=params['TOKENIZATION_METHOD'],
-                        fill=params['FILL'],
-                        pad_on_batch=True,
-                        max_text_len=params['MAX_OUTPUT_TEXT_LEN'],
-                        min_occ=params['MIN_OCCURRENCES_VOCAB'],
-                        required=False)
-            ds.setInput([],
-                        'test',
-                        type='text',
-                        id=params['INPUTS_IDS_DATASET'][2],
-                        build_vocabulary=params['OUTPUTS_IDS_DATASET'][0],
-                        tokenization=params['TOKENIZATION_METHOD'],
-                        fill=params['FILL'],
-                        pad_on_batch=True,
-                        max_text_len=params['MAX_OUTPUT_TEXT_LEN'],
-                        min_occ=params['MIN_OCCURRENCES_VOCAB'],
-                        required=False)
+            if '-upperbound' not in params['DATASET_NAME']:
+                ds, repeat_images = insertTemporallyLinkedCaptions(ds, params)
+                ds.setInput([],
+                            'val',
+                            type='text',
+                            id=params['INPUTS_IDS_DATASET'][2],
+                            build_vocabulary=params['OUTPUTS_IDS_DATASET'][0],
+                            tokenization=params['TOKENIZATION_METHOD'],
+                            fill=params['FILL'],
+                            pad_on_batch=True,
+                            max_text_len=params['MAX_OUTPUT_TEXT_LEN'],
+                            min_occ=params['MIN_OCCURRENCES_VOCAB'],
+                            required=False)
+                ds.setInput([],
+                            'test',
+                            type='text',
+                            id=params['INPUTS_IDS_DATASET'][2],
+                            build_vocabulary=params['OUTPUTS_IDS_DATASET'][0],
+                            tokenization=params['TOKENIZATION_METHOD'],
+                            fill=params['FILL'],
+                            pad_on_batch=True,
+                            max_text_len=params['MAX_OUTPUT_TEXT_LEN'],
+                            min_occ=params['MIN_OCCURRENCES_VOCAB'],
+                            required=False)
+            else:
+                ds, repeat_images = insertTemporallyLinkedCaptions(ds, params,
+                                                                   set_names=['train', 'val', 'test'],
+                                                                   upperbound=True)
+                num_captions_val = repeat_images['val']
+                num_captions_test = repeat_images['test']
+
 
         # Process dataset for keeping only one caption per video and storing the rest in a dict() with the following format:
         #        ds.extra_variables[set_name][id_output][img_position] = [cap1, cap2, cap3, ..., capN]
         keep_n_captions(ds, repeat=[num_captions_val, num_captions_test], n=1, set_names=['val', 'test'])
 
-        if '-linked' in params['DATASET_NAME']:
+
+        if '-linked' in params['DATASET_NAME'] and '-upperbound' not in params['DATASET_NAME']:
             # Set previous data indices
             for s, file in params['LINK_SAMPLE_FILES'].iteritems():
                 if s in repeat_images:
@@ -215,7 +224,7 @@ def keep_n_captions(ds, repeat, n=1, set_names=['val', 'test']):
         logging.info('Samples reduced to ' + str(new_len) + ' in ' + s + ' set.')
 
 
-def insertTemporallyLinkedCaptions(ds, params, set_names=['train']):
+def insertTemporallyLinkedCaptions(ds, params, set_names=['train'], upperbound=False):
     """
         Inserts an additional input consisting of the desired captions from the previous segment/event
         in chronological order. Example:
@@ -233,6 +242,7 @@ def insertTemporallyLinkedCaptions(ds, params, set_names=['train']):
         :param ds: dataset to modify
         :param params: parameters from config
         :param set_names: names of the splits that will be modified (default 'train' only)
+        :param upperbound: wether we want to generate a dataset for an upper bound comparison by using the same captions both as input and output
 
         :return: dataset modified with the additional input
     """
@@ -257,25 +267,36 @@ def insertTemporallyLinkedCaptions(ds, params, set_names=['train']):
 
         # modify outputs and prepare inputs
         images_repeat = []
+        upperbound_images_repeat = []
         final_inputs = []
         final_outputs = []
         for i, link in enumerate(links):
             ini_out = np.sum(num_cap[:i])
             these_outputs = outputs[ini_out:ini_out + num_cap[i]]
-            # first sample in the temporally-linked sequence
-            if link == -1:
-                images_repeat.append(num_cap[i])
-                for out in these_outputs:
-                    final_outputs.append(out)
-                    final_inputs.append('')
-            else:
-                prev_ini_out = np.sum(num_cap[:i - 1])
-                prev_outputs = outputs[prev_ini_out:prev_ini_out + num_cap[i - 1]]
-                images_repeat.append(num_cap[i] * num_cap[link])
-                for n in range(num_cap[link]):
+
+            if upperbound:
+                prev_outputs = these_outputs
+                images_repeat.append(num_cap[i]*num_cap[i])
+                for n in range(num_cap[i]):
+                    upperbound_images_repeat.append(num_cap[i])
                     for out in these_outputs:
                         final_outputs.append(out)
                         final_inputs.append(prev_outputs[n])
+            else:
+                # first sample in the temporally-linked sequence
+                if link == -1:
+                    images_repeat.append(num_cap[i])
+                    for out in these_outputs:
+                        final_outputs.append(out)
+                        final_inputs.append('')
+                else:
+                    prev_ini_out = np.sum(num_cap[:link])
+                    prev_outputs = outputs[prev_ini_out:prev_ini_out + num_cap[link]]
+                    images_repeat.append(num_cap[i] * num_cap[link])
+                    for n in range(num_cap[link]):
+                        for out in these_outputs:
+                            final_outputs.append(out)
+                            final_inputs.append(prev_outputs[n])
 
         # Overwrite input images assigning the new repeat pattern
         for feat_type in params['FEATURE_NAMES']:
@@ -333,6 +354,8 @@ def insertTemporallyLinkedCaptions(ds, params, set_names=['train']):
                     max_text_len=params['MAX_OUTPUT_TEXT_LEN'],
                     min_occ=params['MIN_OCCURRENCES_VOCAB'])
 
+        if upperbound:
+            images_repeat = upperbound_images_repeat
         repeat_images[s] = images_repeat
 
     return ds, repeat_images
