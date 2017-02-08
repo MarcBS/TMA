@@ -227,7 +227,7 @@ def buildCallbacks(params, model, dataset):
             extra_vars['dataset_outputs'] = params['OUTPUTS_IDS_DATASET']
             extra_vars['normalize'] =  params.get('NORMALIZE_SAMPLING', False)
             extra_vars['alpha_factor'] =  params.get('ALPHA_FACTOR', 1.)
-            extra_vars['temporally_linked'] = '-linked' in params['DATASET_NAME']
+            extra_vars['temporally_linked'] = '-linked' in params['DATASET_NAME'] and '-upperbound' not in params['DATASET_NAME']
             input_text_id = None
             vocab_src = None
 
@@ -273,7 +273,7 @@ def buildCallbacks(params, model, dataset):
             extra_vars['dataset_outputs'] = params['OUTPUTS_IDS_DATASET']
             extra_vars['normalize'] = params['NORMALIZE_SAMPLING']
             extra_vars['alpha_factor'] = params['ALPHA_FACTOR']
-            extra_vars['temporally_linked'] = '-linked' in params['DATASET_NAME']
+            extra_vars['temporally_linked'] = '-linked' in params['DATASET_NAME'] and '-upperbound' not in params['DATASET_NAME']
 
         callback_sampling = SampleEachNUpdates(model,
                                                dataset,

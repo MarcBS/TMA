@@ -3,13 +3,13 @@ def load_parameters():
         Loads the defined parameters
     """
     # Input data params
-    DATA_ROOT_PATH = '/media/HDD_2TB/DATASETS/EDUB-SegDesc/'        # Root path to the data
-    #DATA_ROOT_PATH = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
+    #DATA_ROOT_PATH = '/media/HDD_2TB/DATASETS/EDUB-SegDesc/'        # Root path to the data
+    DATA_ROOT_PATH = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
 
     # preprocessed features
     DATASET_NAME = 'EDUB-SegDesc_features-linked'          # Dataset name (add '-linked' suffix for using
                                                     # dataset with temporally-linked training data)
-    PRE_TRAINED_DATASET_NAME = 'MSVD_features'      # Dataset name for reusing vocabulary of pre-trained model
+    PRE_TRAINED_DATASET_NAME = None #'MSVD_features'      # Dataset name for reusing vocabulary of pre-trained model
                                                     # (only applicable if we are using a pre-trained model, default None)
     VOCABULARIES_MAPPING = {'description': 'description',
                             'state_below': 'description',
@@ -57,9 +57,12 @@ def load_parameters():
                             }
 
         INPUTS_IDS_DATASET.append('prev_description')
-        INPUTS_IDS_DATASET.append('link_index')
         INPUTS_IDS_MODEL.append('prev_description')
-        INPUTS_IDS_MODEL.append('link_index')
+
+        if '-upperbound' not in DATASET_NAME:
+            INPUTS_IDS_DATASET.append('link_index')
+            INPUTS_IDS_MODEL.append('link_index')
+
 
     # Evaluation params
     METRICS = ['coco']  # Metric used for evaluating model after each epoch (leave empty if only prediction is required)
@@ -75,7 +78,7 @@ def load_parameters():
     BEAM_SEARCH = True                            # Switches on-off the beam search procedure
     BEAM_SIZE = 10                                # Beam size (in case of BEAM_SEARCH == True)
     BEAM_SEARCH_COND_INPUT = 1                    # Index of the conditional input used in beam search (i.e., state_below)
-    OPTIMIZED_SEARCH = True                       # Compute annotations only a single time per sample
+    OPTIMIZED_SEARCH = False                       # Compute annotations only a single time per sample
     NORMALIZE_SAMPLING = True                     # Normalize hypotheses scores according to their length
     ALPHA_FACTOR = .6                             # Normalization according to length**ALPHA_FACTOR
                                                   # (see: arxiv.org/abs/1609.08144)
@@ -84,7 +87,7 @@ def load_parameters():
     SAMPLE_ON_SETS = ['train', 'val']             # Possible values: 'train', 'val' and 'test'
     N_SAMPLES = 5                                 # Number of samples generated
     START_SAMPLING_ON_EPOCH = 0                   # First epoch where the model will be evaluated
-    SAMPLE_EACH_UPDATES = 500                     # Sampling frequency (default 450)
+    SAMPLE_EACH_UPDATES = 150                     # Sampling frequency (default 450)
 
     # Word representation params
     TOKENIZATION_METHOD = 'tokenize_icann'        # Select which tokenization we'll apply:
@@ -117,7 +120,7 @@ def load_parameters():
     CLIP_C = 10.                                  # During training, clip gradients to this norm
     SAMPLE_WEIGHTS = True                         # Select whether we use a weights matrix (mask) for the data outputs
     LR_DECAY = 1                                  # Minimum number of epochs before the next LR decay. Set to None if don't want to decay the learning rate
-    LR_GAMMA = 0.95                               # Multiplier used for decreasing the LR
+    LR_GAMMA = 0.995                               # Multiplier used for decreasing the LR
 
     # Training parameters
     MAX_EPOCH = 50                                # Stop when computed this number of epochs
@@ -130,7 +133,7 @@ def load_parameters():
 
     # Early stop parameters
     EARLY_STOP = True                             # Turns on/off the early stop protocol
-    PATIENCE = 10                                 # We'll stop if the val STOP_METRIC does not improve after this
+    PATIENCE = 20                                 # We'll stop if the val STOP_METRIC does not improve after this
                                                   # number of evaluations
     STOP_METRIC = 'Bleu_4'                        # Metric for the stop
 
@@ -182,7 +185,7 @@ def load_parameters():
     RECURRENT_DROPOUT_P = 0.5                     # Percentage of units to drop in recurrent layers
 
     USE_NOISE = True                              # Use gaussian noise during training
-    NOISE_AMOUNT = 0.03                           # Amount of noise
+    NOISE_AMOUNT = 0.01                           # Amount of noise
 
     USE_BATCH_NORMALIZATION = True                # If True it is recommended to deactivate Dropout
     BATCH_NORMALIZATION_MODE = 1                  # See documentation in Keras' BN
@@ -191,7 +194,7 @@ def load_parameters():
     USE_L2 = False                                # L2 normalization on the features
 
     # Results plot and models storing parameters
-    EXTRA_NAME = ''                    # This will be appended to the end of the model name
+    EXTRA_NAME = 'new_vocab'                    # This will be appended to the end of the model name
     MODEL_NAME = DATASET_NAME + '_' + MODEL_TYPE +\
                  '_txtemb_' + str(TARGET_TEXT_EMBEDDING_SIZE) + \
                  '_imgemb_' + '_'.join([layer[0] for layer in IMG_EMBEDDING_LAYERS]) + \
@@ -212,7 +215,7 @@ def load_parameters():
                       'initial_state': 'initial_state',
                       'initial_memory': 'initial_memory',
                       'target_word_embedding': 'target_word_embedding',
-                      'attlstmcond_1': 'decoder_AttLSTMCond2Inputs',
+                      'attlstmcond_1': 'decoder_AttLSTMCond2Inputs', #'decoder_AttLSTMCond',
                       'logit_ctx': 'logit_ctx',
                       'logit_lstm': 'logit_lstm',
                       'description': 'description'}
