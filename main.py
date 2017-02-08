@@ -250,10 +250,8 @@ def buildCallbacks(params, model, dataset):
                                                            start_eval_on_epoch=params['START_EVAL_ON_EPOCH'],
                                                            write_samples=True,
                                                            write_type=params['SAMPLING_SAVE_MODE'],
-                                                           early_stop=params['EARLY_STOP'],
-                                                           patience=params['PATIENCE'],
-                                                           stop_metric=params['STOP_METRIC'],
                                                            eval_on_epochs=params['EVAL_EACH_EPOCHS'],
+                                                           save_each_evaluation=params['SAVE_EACH_EVALUATION'],
                                                            verbose=params['VERBOSE'])
 
             callbacks.append(callback_metric)

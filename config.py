@@ -121,12 +121,13 @@ def load_parameters():
 
     # Training parameters
     MAX_EPOCH = 50                                # Stop when computed this number of epochs
-    BATCH_SIZE = 64                                # ABiViRNet trained with BATCH_SIZE = 64
+    BATCH_SIZE = 64                               # ABiViRNet trained with BATCH_SIZE = 64
 
     HOMOGENEOUS_BATCHES = False                   # Use batches with homogeneous output lengths for every minibatch (Possibly buggy!)
     PARALLEL_LOADERS = 8                          # Parallel data batch loaders
     EPOCHS_FOR_SAVE = 1                           # Number of epochs between model saves
     WRITE_VALID_SAMPLES = True                    # Write valid samples in file
+    SAVE_EACH_EVALUATION = True                   # Save each time we evaluate the model
 
     # Early stop parameters
     EARLY_STOP = True                             # Turns on/off the early stop protocol
@@ -143,10 +144,10 @@ def load_parameters():
 
     # Input text parameters
     TARGET_TEXT_EMBEDDING_SIZE = 301              # Source language word embedding size (ABiViRNet 301)
-    TRG_PRETRAINED_VECTORS = None                 # Path to pretrained vectors. (e.g. DATA_ROOT_PATH + '/DATA/word2vec.%s.npy' % TRG_LAN)
+    TRG_PRETRAINED_VECTORS = None # DATA_ROOT_PATH + '/Annotations/word2vec.%s.npy' % TRG_LAN                 # Path to pretrained vectors. (e.g. DATA_ROOT_PATH + '/DATA/word2vec.%s.npy' % TRG_LAN)
                                                   # Set to None if you don't want to use pretrained vectors.
                                                   # When using pretrained word embeddings, the size of the pretrained word embeddings must match with the word embeddings size.
-    TRG_PRETRAINED_VECTORS_TRAINABLE = True       # Finetune or not the target word embedding vectors.
+    TRG_PRETRAINED_VECTORS_TRAINABLE = True      # Finetune or not the target word embedding vectors.
 
     # Encoder configuration
     ENCODER_HIDDEN_SIZE = 717                     # For models with RNN encoder (ABiViRNet 717)
@@ -154,8 +155,15 @@ def load_parameters():
     N_LAYERS_ENCODER = 1                          # Stack this number of encoding layers
     BIDIRECTIONAL_DEEP_ENCODER = True             # Use bidirectional encoder in all encoding layers
 
-    DECODER_HIDDEN_SIZE = 484   # For models with LSTM decoder (ABiViRNet 484)
-    ADDITIONAL_OUTPUT_MERGE_MODE = 'sum' # Merge mode for the skip connections
+
+    # Previous sentence encoder
+    PREV_SENT_ENCODER_HIDDEN_SIZE = 484           # For models with previous sentence RNN encoder
+    BIDIRECTIONAL_PREV_SENT_ENCODER = True        # Use bidirectional encoder
+    N_LAYERS_PREV_SENT_ENCODER = 1                # Stack this number of encoding layers
+    BIDIRECTIONAL_DEEP_PREV_SENT_ENCODER = True   # Use bidirectional encoder in all encoding layers
+
+    DECODER_HIDDEN_SIZE = 484                     # For models with LSTM decoder (ABiViRNet 484)
+    ADDITIONAL_OUTPUT_MERGE_MODE = 'sum'          # Merge mode for the skip connections
 
     IMG_EMBEDDING_LAYERS = []  # FC layers for visual embedding
                                # Here we should specify the activation function and the output dimension
@@ -170,7 +178,7 @@ def load_parameters():
     # Additional Fully-Connected layers's sizes applied before softmax.
     #       Here we should specify the activation function and the output dimension
     #       (e.g DEEP_OUTPUT_LAYERS = [('tanh', 600), ('relu', 400), ('relu', 200)])
-    DEEP_OUTPUT_LAYERS = []#('maxout', TARGET_TEXT_EMBEDDING_SIZE/2)]
+    DEEP_OUTPUT_LAYERS = []
 
     # Regularizers
     WEIGHT_DECAY = 1e-4                           # L2 regularization
@@ -198,6 +206,7 @@ def load_parameters():
                  '_imgemb_' + '_'.join([layer[0] for layer in IMG_EMBEDDING_LAYERS]) + \
                  '_lstmenc_' + str(ENCODER_HIDDEN_SIZE) + \
                  '_lstm_' + str(DECODER_HIDDEN_SIZE) + \
+                 '_additional_output_mode_' + str(ADDITIONAL_OUTPUT_MERGE_MODE) + \
                  '_deepout_' + '_'.join([layer[0] for layer in DEEP_OUTPUT_LAYERS]) + \
                  '_' + OPTIMIZER + '_lr_' + str(LR) + '_decay_' + str(LR_DECAY) + '-' + str(LR_GAMMA)
 
