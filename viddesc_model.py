@@ -73,7 +73,7 @@ class VideoDesc_Model(Model_Wrapper):
                     self.trg_embedding_weights[index, :] = self.trg_word_vectors[word]
             self.trg_embedding_weights = [self.trg_embedding_weights]
             self.trg_embedding_weights_trainable = params['TRG_PRETRAINED_VECTORS_TRAINABLE']
-
+            del self.trg_word_vectors
         else:
             self.trg_embedding_weights = None
             self.trg_embedding_weights_trainable = True
@@ -332,7 +332,7 @@ class VideoDesc_Model(Model_Wrapper):
         [out_layer_emb, shared_reg_out_layer_emb] = Regularize(out_layer_emb, params,
                                                                shared_layers=True, name='out_layer_emb')
 
-        additional_output = merge([out_layer_mlp, out_layer_ctx, out_layer_emb], mode='sum', name='additional_input')
+        additional_output = merge([out_layer_mlp, out_layer_ctx, out_layer_emb], mode=params['ADDITIONAL_OUTPUT_MERGE_MODE'], name='additional_input')
         shared_activation_tanh = Activation('tanh')
 
         out_layer = shared_activation_tanh(additional_output)
@@ -435,7 +435,7 @@ class VideoDesc_Model(Model_Wrapper):
                 out_layer_emb = reg_out_layer_emb(out_layer_emb)
 
             additional_output = merge([out_layer_mlp, out_layer_ctx, out_layer_emb],
-                                      mode='sum', name='additional_input_model_next')
+                                      mode=params['ADDITIONAL_OUTPUT_MERGE_MODE'], name='additional_input_model_next')
             out_layer = shared_activation_tanh(additional_output)
 
             for (deep_out_layer, reg_list) in zip(shared_deep_list, shared_reg_deep_list):
@@ -569,7 +569,7 @@ class VideoDesc_Model(Model_Wrapper):
         prev_desc_emb = shared_emb(prev_desc)
 
         # LSTM for encoding the previous description
-        prev_desc_enc = eval(params['RNN_TYPE'])(params['DECODER_HIDDEN_SIZE'],
+        prev_desc_enc = Bidirectional(eval(params['RNN_TYPE'])(params['DECODER_HIDDEN_SIZE'],
                                                  W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
                                                  U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
                                                  b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
@@ -577,8 +577,8 @@ class VideoDesc_Model(Model_Wrapper):
                                                      'USE_RECURRENT_DROPOUT'] else None,
                                                  dropout_U=params['RECURRENT_DROPOUT_P'] if params[
                                                      'USE_RECURRENT_DROPOUT'] else None,
-                                                 return_sequences=False,
-                                                 name='encoder_prev_desc' + params['RNN_TYPE'])(prev_desc_emb)
+                                                 return_sequences=False),
+                                                 name='encoder_prev_desc' + params['RNN_TYPE'], merge_mode='concat')(prev_desc_emb)
         prev_desc_enc = Regularize(prev_desc_enc, params, name='prev_desc_enc')
 
         # LSTM initialization perceptrons with ctx mean
@@ -691,7 +691,7 @@ class VideoDesc_Model(Model_Wrapper):
 
         ### Merge of FC outputs
         additional_output = merge([out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev],
-                                  mode='sum', name='additional_input')
+                                  mode=params['ADDITIONAL_OUTPUT_MERGE_MODE'], name='additional_input')
         # tanh activation
         shared_activation_tanh = Activation('tanh')
         out_layer = shared_activation_tanh(additional_output)
@@ -805,7 +805,7 @@ class VideoDesc_Model(Model_Wrapper):
                 out_layer_prev = reg_out_layer_prev(out_layer_prev)
 
             additional_output = merge([out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev],
-                                      mode='sum', name='additional_input_model_next')
+                                      mode=params['ADDITIONAL_OUTPUT_MERGE_MODE'], name='additional_input_model_next')
             out_layer = shared_activation_tanh(additional_output)
 
             for (deep_out_layer, reg_list) in zip(shared_deep_list, shared_reg_deep_list):
@@ -953,7 +953,7 @@ class VideoDesc_Model(Model_Wrapper):
         prev_desc_emb = shared_emb(prev_desc)
 
         # LSTM for encoding the previous description
-        prev_desc_enc = eval(params['RNN_TYPE'])(params['DECODER_HIDDEN_SIZE'],
+        prev_desc_enc = Bidirectional(eval(params['RNN_TYPE'])(params['DECODER_HIDDEN_SIZE'],
                                                  W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
                                                  U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
                                                  b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
@@ -961,7 +961,7 @@ class VideoDesc_Model(Model_Wrapper):
                                                      'USE_RECURRENT_DROPOUT'] else None,
                                                  dropout_U=params['RECURRENT_DROPOUT_P'] if params[
                                                      'USE_RECURRENT_DROPOUT'] else None,
-                                                 return_sequences=True,
+                                                 return_sequences=True), merge_mode='concat',
                                                  name='encoder_prev_desc' + params['RNN_TYPE'])(prev_desc_emb)
         prev_desc_enc = Regularize(prev_desc_enc, params, name='prev_desc_enc')
 
@@ -1081,7 +1081,7 @@ class VideoDesc_Model(Model_Wrapper):
 
         ### Merge of FC outputs
         additional_output = merge([out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev],
-                                  mode='sum', name='additional_input')
+                                  mode=params['ADDITIONAL_OUTPUT_MERGE_MODE'], name='additional_input')
 
         # tanh activation
         shared_activation_tanh = Activation('tanh')
@@ -1199,7 +1199,7 @@ class VideoDesc_Model(Model_Wrapper):
                 out_layer_prev = reg_out_layer_prev(out_layer_prev)
 
             additional_output = merge([out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev],
-                                      mode='sum', name='additional_input_model_next')
+                                      mode=params['ADDITIONAL_OUTPUT_MERGE_MODE'], name='additional_input_model_next')
             out_layer = shared_activation_tanh(additional_output)
 
             for (deep_out_layer, reg_list) in zip(shared_deep_list, shared_reg_deep_list):

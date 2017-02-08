@@ -160,8 +160,7 @@ def build_dataset(params):
 
     # Load vocabulary-related parameters of dataset used for pre-training
     if params['PRE_TRAINED_DATASET_NAME'] is not None:
-        dataset_pretrained = loadDataset(
-            params['DATASET_STORE_PATH'] + 'Dataset_' + params['PRE_TRAINED_DATASET_NAME'] + '.pkl')
+        dataset_pretrained = loadDataset(params['DATASET_STORE_PATH'] + 'Dataset_' + params['PRE_TRAINED_DATASET_NAME'] + '.pkl')
         for id_new, id_old in params['VOCABULARIES_MAPPING'].iteritems():
             ds.vocabulary[id_new] = copy.deepcopy(dataset_pretrained.vocabulary[id_old])
             ds.vocabulary_len[id_new] = copy.deepcopy(dataset_pretrained.vocabulary_len[id_old])
