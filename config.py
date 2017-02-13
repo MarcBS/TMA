@@ -3,11 +3,11 @@ def load_parameters():
         Loads the defined parameters
     """
     # Input data params
-    DATA_ROOT_PATH = '/media/HDD_2TB/DATASETS/EDUB-SegDesc/'        # Root path to the data
-    #DATA_ROOT_PATH = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
+    #DATA_ROOT_PATH = '/media/HDD_2TB/DATASETS/EDUB-SegDesc/'        # Root path to the data
+    DATA_ROOT_PATH = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
 
     # preprocessed features
-    DATASET_NAME = 'EDUB-SegDesc_features-linked'          # Dataset name (add '-linked' suffix for using
+    DATASET_NAME = 'EDUB-SegDesc_features-linked'   # Dataset name (add '-linked' suffix for using
                                                     # dataset with temporally-linked training data)
     PRE_TRAINED_DATASET_NAME = None #'MSVD_features'      # Dataset name for reusing vocabulary of pre-trained model
                                                     # (only applicable if we are using a pre-trained model, default None)
@@ -80,7 +80,7 @@ def load_parameters():
     BEAM_SEARCH = True                            # Switches on-off the beam search procedure
     BEAM_SIZE = 10                                # Beam size (in case of BEAM_SEARCH == True)
     BEAM_SEARCH_COND_INPUT = 1                    # Index of the conditional input used in beam search (i.e., state_below)
-    OPTIMIZED_SEARCH = True                       # Compute annotations only a single time per sample
+    OPTIMIZED_SEARCH = False                       # Compute annotations only a single time per sample
     NORMALIZE_SAMPLING = True                     # Normalize hypotheses scores according to their length
     ALPHA_FACTOR = .6                             # Normalization according to length**ALPHA_FACTOR
                                                   # (see: arxiv.org/abs/1609.08144)
@@ -206,7 +206,7 @@ def load_parameters():
     USE_L2 = False                                # L2 normalization on the features
 
     # Results plot and models storing parameters
-    EXTRA_NAME = ''                    # This will be appended to the end of the model name
+    EXTRA_NAME = 'test'          # This will be appended to the end of the model name
     MODEL_NAME = DATASET_NAME + '_' + MODEL_TYPE +\
                  '_txtemb_' + str(TARGET_TEXT_EMBEDDING_SIZE) + \
                  '_imgemb_' + '_'.join([layer[0] for layer in IMG_EMBEDDING_LAYERS]) + \
@@ -229,7 +229,7 @@ def load_parameters():
                       'initial_memory': 'initial_memory',
                       'logit_ctx': 'logit_ctx',
                       },
-                      {'bidirectional_encoder_LSTM': 'bidirectional_encoder_LSTM',
+                      {'bidirectional_encoder_LSTM': 'prev_desc_emb_bidirectional_encoder_LSTM', #'prev_desc_emb_encoder_LSTM',
                       'target_word_embedding': 'target_word_embedding',
                       'decoder_AttLSTMCond': 'decoder_AttLSTMCond2Inputs', #'decoder_AttLSTMCond',
                       'target_text': 'description'

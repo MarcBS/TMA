@@ -144,12 +144,13 @@ def apply_Video_model(params):
         if params['BEAM_SEARCH']:
             params_prediction['beam_size'] = params['BEAM_SIZE']
             params_prediction['maxlen'] = params['MAX_OUTPUT_TEXT_LEN_TEST']
-            params_prediction['optimized_search'] = params['OPTIMIZED_SEARCH']
+            params_prediction['optimized_search'] = params['OPTIMIZED_SEARCH'] and '-upperbound' not in params['DATASET_NAME']
             params_prediction['model_inputs'] = params['INPUTS_IDS_MODEL']
             params_prediction['model_outputs'] = params['OUTPUTS_IDS_MODEL']
             params_prediction['dataset_inputs'] = params['INPUTS_IDS_DATASET']
             params_prediction['dataset_outputs'] = params['OUTPUTS_IDS_DATASET']
             params_prediction['normalize'] = params['NORMALIZE_SAMPLING']
+            extra_vars['temporally_linked'] = '-linked' in params['DATASET_NAME'] and '-upperbound' not in params['DATASET_NAME']
 
             params_prediction['alpha_factor'] = params['ALPHA_FACTOR']
             predictions = video_model.predictBeamSearchNet(dataset, params_prediction)[s]
@@ -221,7 +222,7 @@ def buildCallbacks(params, model, dataset):
             extra_vars['beam_size'] = params.get('BEAM_SIZE', 6)
             extra_vars['state_below_index'] =  params.get('BEAM_SEARCH_COND_INPUT', -1)
             extra_vars['maxlen'] = params.get('MAX_OUTPUT_TEXT_LEN_TEST', 30)
-            extra_vars['optimized_search'] = params.get('OPTIMIZED_SEARCH', True)
+            extra_vars['optimized_search'] = params.get('OPTIMIZED_SEARCH', True) and '-upperbound' not in params['DATASET_NAME']
             extra_vars['model_inputs'] = params['INPUTS_IDS_MODEL']
             extra_vars['model_outputs'] = params['OUTPUTS_IDS_MODEL']
             extra_vars['dataset_inputs'] = params['INPUTS_IDS_DATASET']
@@ -265,7 +266,7 @@ def buildCallbacks(params, model, dataset):
             extra_vars['beam_size'] = params['BEAM_SIZE']
             extra_vars['state_below_index'] = params.get('BEAM_SEARCH_COND_INPUT', -1)
             extra_vars['maxlen'] = params['MAX_OUTPUT_TEXT_LEN_TEST']
-            extra_vars['optimized_search'] = params['OPTIMIZED_SEARCH']
+            extra_vars['optimized_search'] = params['OPTIMIZED_SEARCH'] and '-upperbound' not in params['DATASET_NAME']
             extra_vars['model_inputs'] = params['INPUTS_IDS_MODEL']
             extra_vars['model_outputs'] = params['OUTPUTS_IDS_MODEL']
             extra_vars['dataset_inputs'] = params['INPUTS_IDS_DATASET']

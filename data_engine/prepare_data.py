@@ -130,7 +130,10 @@ def build_dataset(params):
                 ds, repeat_images = insertTemporallyLinkedCaptions(ds,
                                                                    params,
                                                                    set_names=['train', 'val', 'test'],
-                                                                   upperbound=True)
+                                                                   upperbound=True,
+                                                                   copy= '-copy' in params['DATASET_NAME'],
+                                                                   force_nocopy='-nocopy' in params['DATASET_NAME'],
+                                                                   prev= '-prev' in params['DATASET_NAME'])
                 num_captions_val = repeat_images['val']
                 num_captions_test = repeat_images['test']
 
@@ -229,7 +232,8 @@ def keep_n_captions(ds, repeat, n=1, set_names=['val', 'test']):
         logging.info('Samples reduced to ' + str(new_len) + ' in ' + s + ' set.')
 
 
-def insertTemporallyLinkedCaptions(ds, params, set_names=['train'], upperbound=False):
+def insertTemporallyLinkedCaptions(ds, params, set_names=['train'],
+                                   upperbound=False, copy=False, force_nocopy=False, prev=False):
     """
         Inserts an additional input consisting of the desired captions from the previous segment/event
         in chronological order. Example:
@@ -247,7 +251,10 @@ def insertTemporallyLinkedCaptions(ds, params, set_names=['train'], upperbound=F
         :param ds: dataset to modify
         :param params: parameters from config
         :param set_names: names of the splits that will be modified (default 'train' only)
-        :param upperbound: wether we want to generate a dataset for an upper bound comparison by using the same captions both as input and output
+        :param upperbound: whether we want to generate a dataset for an upper bound comparison by using the same captions both as input and output
+        :param copy: generates an upperbound dataset only intending to copy giving only matching input-output sequences (only valid if upperbound=True)
+        :param force_nocopy: generates an upperbound dataset using the same captions both as input and output but avoiding direct copies
+        :param prev: indicates if we want to use the previous event's caption as input for the next, or use the current event's output instead
 
         :return: dataset modified with the additional input
     """
@@ -280,13 +287,47 @@ def insertTemporallyLinkedCaptions(ds, params, set_names=['train'], upperbound=F
             these_outputs = outputs[ini_out:ini_out + num_cap[i]]
 
             if upperbound:
-                prev_outputs = these_outputs
-                images_repeat.append(num_cap[i]*num_cap[i])
-                for n in range(num_cap[i]):
+                if copy:
+                    images_repeat.append(num_cap[i])
                     upperbound_images_repeat.append(num_cap[i])
                     for out in these_outputs:
                         final_outputs.append(out)
-                        final_inputs.append(prev_outputs[n])
+                        final_inputs.append(out)
+                elif prev:
+                    # first sample in the temporally-linked sequence
+                    if link == -1:
+                        images_repeat.append(num_cap[i])
+                        upperbound_images_repeat.append(num_cap[i])
+                        for out in these_outputs:
+                            final_outputs.append(out)
+                            final_inputs.append('')
+                    else:
+                        prev_ini_out = np.sum(num_cap[:link])
+                        prev_outputs = outputs[prev_ini_out:prev_ini_out + num_cap[link]]
+                        images_repeat.append(num_cap[i] * num_cap[link])
+                        for n in range(num_cap[link]):
+                            upperbound_images_repeat.append(num_cap[i])
+                            for out in these_outputs:
+                                final_outputs.append(out)
+                                final_inputs.append(prev_outputs[n])
+                elif force_nocopy:
+                    raise NotImplementedError()
+                    prev_outputs = these_outputs
+                    images_repeat.append(num_cap[i] * (num_cap[i]-1))
+                    for n in range(num_cap[i]):
+                        upperbound_images_repeat.append(num_cap[i]-1)
+                        for nthese, out in enumerate(these_outputs):
+                            if nthese != n:
+                                final_outputs.append(out)
+                                final_inputs.append(prev_outputs[n])
+                else:
+                    prev_outputs = these_outputs
+                    images_repeat.append(num_cap[i]*num_cap[i])
+                    for n in range(num_cap[i]):
+                        upperbound_images_repeat.append(num_cap[i])
+                        for out in these_outputs:
+                            final_outputs.append(out)
+                            final_inputs.append(prev_outputs[n])
             else:
                 # first sample in the temporally-linked sequence
                 if link == -1:
