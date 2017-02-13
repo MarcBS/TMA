@@ -1,5 +1,5 @@
 from keras_wrapper.dataset import Dataset, saveDataset, loadDataset
-
+from keras_wrapper.extra.read_write import pkl2dict
 import copy
 import numpy as np
 import logging
@@ -127,7 +127,8 @@ def build_dataset(params):
                             min_occ=params['MIN_OCCURRENCES_VOCAB'],
                             required=False)
             else:
-                ds, repeat_images = insertTemporallyLinkedCaptions(ds, params,
+                ds, repeat_images = insertTemporallyLinkedCaptions(ds,
+                                                                   params,
                                                                    set_names=['train', 'val', 'test'],
                                                                    upperbound=True)
                 num_captions_val = repeat_images['val']
@@ -137,7 +138,6 @@ def build_dataset(params):
         # Process dataset for keeping only one caption per video and storing the rest in a dict() with the following format:
         #        ds.extra_variables[set_name][id_output][img_position] = [cap1, cap2, cap3, ..., capN]
         keep_n_captions(ds, repeat=[num_captions_val, num_captions_test], n=1, set_names=['val', 'test'])
-
 
         if '-linked' in params['DATASET_NAME'] and '-upperbound' not in params['DATASET_NAME']:
             # Set previous data indices
@@ -164,6 +164,11 @@ def build_dataset(params):
         for id_new, id_old in params['VOCABULARIES_MAPPING'].iteritems():
             ds.vocabulary[id_new] = copy.deepcopy(dataset_pretrained.vocabulary[id_old])
             ds.vocabulary_len[id_new] = copy.deepcopy(dataset_pretrained.vocabulary_len[id_old])
+    elif params['PRE_TRAINED_VOCABULARY_NAME'] is not None:
+        dataset_pretrained_vocabulary = pkl2dict(params['DATASET_STORE_PATH'] + params['PRE_TRAINED_VOCABULARY_NAME'] + '.pkl')
+        for id_new, id_old in params['VOCABULARIES_MAPPING'].iteritems():
+            ds.vocabulary[id_new] = copy.deepcopy(dataset_pretrained_vocabulary[id_old])
+            ds.vocabulary_len[id_new] = len(dataset_pretrained_vocabulary[id_old]['idx2words'])
 
     return ds
 

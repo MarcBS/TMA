@@ -9,11 +9,14 @@ def load_parameters():
     # preprocessed features
     DATASET_NAME = 'EDUB-SegDesc_features-linked'          # Dataset name (add '-linked' suffix for using
                                                     # dataset with temporally-linked training data)
-    PRE_TRAINED_DATASET_NAME = 'MSVD_features'      # Dataset name for reusing vocabulary of pre-trained model
+    PRE_TRAINED_DATASET_NAME = None #'MSVD_features'      # Dataset name for reusing vocabulary of pre-trained model
                                                     # (only applicable if we are using a pre-trained model, default None)
-    VOCABULARIES_MAPPING = {'description': 'description',
-                            'state_below': 'description',
-                            'prev_description': 'description'}
+
+    PRE_TRAINED_VOCABULARY_NAME = '1BillionWords_vocabulary'      # Dataset name for reusing vocabulary of pre-trained model
+
+    VOCABULARIES_MAPPING = {'description': 'target_text',
+                            'state_below': 'target_text',
+                            'prev_description': 'target_text'}
 
     # Input data
     INPUT_DATA_TYPE = 'video-features'                          # 'video-features' or 'video'
@@ -119,7 +122,7 @@ def load_parameters():
     CLIP_C = 10.                                  # During training, clip gradients to this norm
     SAMPLE_WEIGHTS = True                         # Select whether we use a weights matrix (mask) for the data outputs
     LR_DECAY = 1                                  # Minimum number of epochs before the next LR decay. Set to None if don't want to decay the learning rate
-    LR_GAMMA = 0.995                               # Multiplier used for decreasing the LR
+    LR_GAMMA = 0.95                               # Multiplier used for decreasing the LR
 
     # Training parameters
     MAX_EPOCH = 50                                # Stop when computed this number of epochs
@@ -166,7 +169,7 @@ def load_parameters():
 
     DECODER_HIDDEN_SIZE = 484                     # For models with LSTM decoder (ABiViRNet 484)
     ADDITIONAL_OUTPUT_MERGE_MODE = 'sum'          # Merge mode for the skip connections
-    WEIGHTED_MERGE = True       # Weither we want to apply a conventional or a weighted merge
+    WEIGHTED_MERGE = False       # Wether we want to apply a conventional or a weighted merge
 
     IMG_EMBEDDING_LAYERS = []  # FC layers for visual embedding
                                # Here we should specify the activation function and the output dimension
@@ -216,26 +219,30 @@ def load_parameters():
     MODEL_NAME += EXTRA_NAME
 
     # Name and location of the pre-trained model (only if RELOAD > 0)
-    PRE_TRAINED_MODEL = 'MSVD_best_model' # default: MODEL_NAME
-    PRE_TRAINED_MODEL_STORE_PATH = 'trained_models/' + PRE_TRAINED_MODEL  + '/'
+    PRE_TRAINED_MODELS = ['MSVD_best_model', '1BillionWords'] # default: MODEL_NAME
+    PRE_TRAINED_MODEL_STORE_PATHS = map(lambda x: 'trained_models/' + x  + '/', PRE_TRAINED_MODELS)
     LOAD_WEIGHTS_ONLY = True                           # Load weights of pre-trained model or complete Model_Wrapper instance
     # Layers' mapping from old to new model if LOAD_WEIGHTS_ONLY
     #   You can check the layers of a model with [layer.name for layer in model_wrapper.model.layers]
-    LAYERS_MAPPING = {'bidirectional_encoder': 'bidirectional_encoder_LSTM',
+    LAYERS_MAPPING = [{'bidirectional_encoder': 'bidirectional_encoder_LSTM',
+                      'logit_ctx': 'logit_ctx',
+                      },
+                      {'bidirectional_encoder_LSTM': 'bidirectional_encoder_LSTM',
                       'initial_state': 'initial_state',
                       'initial_memory': 'initial_memory',
                       'target_word_embedding': 'target_word_embedding',
-                      'attlstmcond_1': 'decoder_AttLSTMCond2Inputs', #'decoder_AttLSTMCond',
+                      'decoder_AttLSTMCond': 'decoder_AttLSTMCond2Inputs', #'decoder_AttLSTMCond',
                       'logit_ctx': 'logit_ctx',
-                      'logit_lstm': 'logit_lstm',
-                      'description': 'description'}
+                      'target_text': 'description'
+                      }
+                      ]
 
     STORE_PATH = 'trained_models/' + MODEL_NAME  + '/' # Models and evaluation results will be stored here
     DATASET_STORE_PATH = 'datasets/'                   # Dataset instance will be stored here
 
     SAMPLING_SAVE_MODE = 'list'                        # 'list' or 'vqa'
     VERBOSE = 1                                        # Vqerbosity level
-    RELOAD = 2                                        # If 0 start training from scratch, otherwise the model
+    RELOAD = [2, 0]                                        # If 0 start training from scratch, otherwise the model
                                                        # Saved on epoch 'RELOAD' will be used
     REBUILD_DATASET = True                             # Build again or use stored instance
     MODE = 'training'                                  # 'training' or 'sampling' (if 'sampling' then RELOAD must

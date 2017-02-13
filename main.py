@@ -64,13 +64,14 @@ def train_model(params):
 
         # Only load weights from pre-trained model
         if params['LOAD_WEIGHTS_ONLY'] and params['RELOAD'] > 0:
-            old_model = loadModel(params['PRE_TRAINED_MODEL_STORE_PATH'], params['RELOAD'])
-            video_model = transferWeights(old_model, video_model, params['LAYERS_MAPPING'])
+            for i in range(0, len(params['RELOAD'])):
+                old_model = loadModel(params['PRE_TRAINED_MODEL_STORE_PATHS'][i], params['RELOAD'][i])
+                video_model = transferWeights(old_model, video_model, params['LAYERS_MAPPING'][i])
             video_model.setOptimizer()
             params['RELOAD'] = 0
 
     else: # resume from previously trained model
-        video_model = loadModel(params['PRE_TRAINED_MODEL_STORE_PATH'], params['RELOAD'])
+        video_model = loadModel(params['PRE_TRAINED_MODEL_STORE_PATHS'], params['RELOAD'])
         video_model.setOptimizer()
 
         if video_model.model_path != params['STORE_PATH']:
