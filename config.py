@@ -225,14 +225,13 @@ def load_parameters():
     # Layers' mapping from old to new model if LOAD_WEIGHTS_ONLY
     #   You can check the layers of a model with [layer.name for layer in model_wrapper.model.layers]
     LAYERS_MAPPING = [{'bidirectional_encoder': 'bidirectional_encoder_LSTM',
+                      'initial_state': 'initial_state',
+                      'initial_memory': 'initial_memory',
                       'logit_ctx': 'logit_ctx',
                       },
                       {'bidirectional_encoder_LSTM': 'bidirectional_encoder_LSTM',
-                      'initial_state': 'initial_state',
-                      'initial_memory': 'initial_memory',
                       'target_word_embedding': 'target_word_embedding',
                       'decoder_AttLSTMCond': 'decoder_AttLSTMCond2Inputs', #'decoder_AttLSTMCond',
-                      'logit_ctx': 'logit_ctx',
                       'target_text': 'description'
                       }
                       ]
