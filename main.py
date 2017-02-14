@@ -42,7 +42,7 @@ def train_model(params):
                                       verbose=params['VERBOSE'],
                                       model_name=params['MODEL_NAME'],
                                       vocabularies=dataset.vocabulary,
-                                      store_path=params['STORE_PATH'])
+                                      store_path=params['STORE_PATH'])        
         dict2pkl(params, params['STORE_PATH'] + '/config')
 
         # Define the inputs and outputs mapping from our Dataset instance to our model
@@ -76,6 +76,12 @@ def train_model(params):
 
         if video_model.model_path != params['STORE_PATH']:
             video_model.setName(params['MODEL_NAME'], models_path=params['STORE_PATH'], clear_dirs=False)
+    ###########
+
+
+    ########### Test model saving/loading functions
+    #saveModel(video_model, params['RELOAD'])
+    #video_model = loadModel(params['STORE_PATH'], params['RELOAD'])
     ###########
 
 

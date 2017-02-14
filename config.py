@@ -80,7 +80,7 @@ def load_parameters():
     BEAM_SEARCH = True                            # Switches on-off the beam search procedure
     BEAM_SIZE = 10                                # Beam size (in case of BEAM_SEARCH == True)
     BEAM_SEARCH_COND_INPUT = 1                    # Index of the conditional input used in beam search (i.e., state_below)
-    OPTIMIZED_SEARCH = False                       # Compute annotations only a single time per sample
+    OPTIMIZED_SEARCH = True                       # Compute annotations only a single time per sample
     NORMALIZE_SAMPLING = True                     # Normalize hypotheses scores according to their length
     ALPHA_FACTOR = .6                             # Normalization according to length**ALPHA_FACTOR
                                                   # (see: arxiv.org/abs/1609.08144)
@@ -162,7 +162,7 @@ def load_parameters():
 
 
     # Previous sentence encoder
-    PREV_SENT_ENCODER_HIDDEN_SIZE = 484           # For models with previous sentence RNN encoder
+    PREV_SENT_ENCODER_HIDDEN_SIZE = 717           # For models with previous sentence RNN encoder (484)
     BIDIRECTIONAL_PREV_SENT_ENCODER = True        # Use bidirectional encoder
     N_LAYERS_PREV_SENT_ENCODER = 1                # Stack this number of encoding layers
     BIDIRECTIONAL_DEEP_PREV_SENT_ENCODER = True   # Use bidirectional encoder in all encoding layers
@@ -220,15 +220,16 @@ def load_parameters():
 
     # Name and location of the pre-trained model (only if RELOAD > 0)
     PRE_TRAINED_MODELS = ['MSVD_best_model', '1BillionWords'] # default: MODEL_NAME
-    PRE_TRAINED_MODEL_STORE_PATHS = map(lambda x: 'trained_models/' + x  + '/', PRE_TRAINED_MODELS)
+    PRE_TRAINED_MODEL_STORE_PATHS = map(lambda x: 'trained_models/' + x  + '/', PRE_TRAINED_MODELS) if isinstance(PRE_TRAINED_MODELS, list) else 'trained_models/'+PRE_TRAINED_MODELS+'/'
     LOAD_WEIGHTS_ONLY = True                           # Load weights of pre-trained model or complete Model_Wrapper instance
     # Layers' mapping from old to new model if LOAD_WEIGHTS_ONLY
     #   You can check the layers of a model with [layer.name for layer in model_wrapper.model.layers]
     LAYERS_MAPPING = [{'bidirectional_encoder': 'bidirectional_encoder_LSTM',
                       'initial_state': 'initial_state',
                       'initial_memory': 'initial_memory',
+                      'attlstmcond_1': 'decoder_AttLSTMCond2Inputs',  # 'decoder_AttLSTMCond',
                       'logit_ctx': 'logit_ctx',
-                      },
+                       },
                       {'bidirectional_encoder_LSTM': 'prev_desc_emb_bidirectional_encoder_LSTM', #'prev_desc_emb_encoder_LSTM',
                       'target_word_embedding': 'target_word_embedding',
                       'decoder_AttLSTMCond': 'decoder_AttLSTMCond2Inputs', #'decoder_AttLSTMCond',

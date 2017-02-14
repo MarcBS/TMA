@@ -113,6 +113,13 @@ class VideoDesc_Model(Model_Wrapper):
         :param **kwargs:
         """
 
+        super(self.__class__, self).setOptimizer(lr=self.params['LR'],
+                                                 clipnorm=self.params['CLIP_C'],
+                                                 loss=self.params['LOSS'],
+                                                 optimizer=self.params['OPTIMIZER'],
+                                                 sample_weight_mode='temporal' if self.params['SAMPLE_WEIGHTS'] else None)
+
+        """
         # compile differently depending if our model is 'Sequential' or 'Graph'
         if self.verbose > 0:
             logging.info("Preparing optimizer and compiling.")
@@ -131,7 +138,7 @@ class VideoDesc_Model(Model_Wrapper):
             optimizer = eval(self.params['OPTIMIZER'])
         self.model.compile(optimizer=optimizer, loss=self.params['LOSS'],
                            sample_weight_mode='temporal' if self.params['SAMPLE_WEIGHTS'] else None)
-
+        """
 
     def __str__(self):
         """
