@@ -3,21 +3,24 @@ def load_parameters():
         Loads the defined parameters
     """
     # Input data params
-    #DATA_ROOT_PATH = '/media/HDD_2TB/DATASETS/EDUB-SegDesc/'        # Root path to the data
-    DATA_ROOT_PATH = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
+    DATA_ROOT_PATH = '/media/HDD_2TB/DATASETS/EDUB-SegDesc/'        # Root path to the data
+    #DATA_ROOT_PATH = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
 
     # preprocessed features
     DATASET_NAME = 'EDUB-SegDesc_features-linked'   # Dataset name (add '-linked' suffix for using
                                                     # dataset with temporally-linked training data)
-    PRE_TRAINED_DATASET_NAME = None #'MSVD_features'      # Dataset name for reusing vocabulary of pre-trained model
+    PRE_TRAINED_DATASET_NAME = 'MSVD_features'      # Dataset name for reusing vocabulary of pre-trained model
                                                     # (only applicable if we are using a pre-trained model, default None)
-
+    VOCABULARIES_MAPPING = {'description': 'description',
+                        'state_below': 'description',
+                        'prev_description': 'description'}
+    """
     PRE_TRAINED_VOCABULARY_NAME = '1BillionWords_vocabulary'      # Dataset name for reusing vocabulary of pre-trained model
 
     VOCABULARIES_MAPPING = {'description': 'target_text',
                             'state_below': 'target_text',
                             'prev_description': 'target_text'}
-
+    """
     # Input data
     INPUT_DATA_TYPE = 'video-features'                          # 'video-features' or 'video'
     NUM_FRAMES = 26                                             # fixed number of input frames per video
@@ -81,7 +84,7 @@ def load_parameters():
     BEAM_SIZE = 10                                # Beam size (in case of BEAM_SEARCH == True)
     BEAM_SEARCH_COND_INPUT = 1                    # Index of the conditional input used in beam search (i.e., state_below)
     OPTIMIZED_SEARCH = True                       # Compute annotations only a single time per sample
-    NORMALIZE_SAMPLING = True                     # Normalize hypotheses scores according to their length
+    NORMALIZE_SAMPLING = False                    # Normalize hypotheses scores according to their length
     ALPHA_FACTOR = .6                             # Normalization according to length**ALPHA_FACTOR
                                                   # (see: arxiv.org/abs/1609.08144)
 
@@ -196,7 +199,7 @@ def load_parameters():
     USE_RECURRENT_DROPOUT = False                 # Use dropout in recurrent layers # DANGEROUS!
     RECURRENT_DROPOUT_P = 0.5                     # Percentage of units to drop in recurrent layers
 
-    USE_NOISE = True                              # Use gaussian noise during training
+    USE_NOISE = False                             # Use gaussian noise during training
     NOISE_AMOUNT = 0.01                           # Amount of noise
 
     USE_BATCH_NORMALIZATION = True                # If True it is recommended to deactivate Dropout
@@ -206,7 +209,7 @@ def load_parameters():
     USE_L2 = False                                # L2 normalization on the features
 
     # Results plot and models storing parameters
-    EXTRA_NAME = 'test'          # This will be appended to the end of the model name
+    EXTRA_NAME = ''                    # This will be appended to the end of the model name
     MODEL_NAME = DATASET_NAME + '_' + MODEL_TYPE +\
                  '_txtemb_' + str(TARGET_TEXT_EMBEDDING_SIZE) + \
                  '_imgemb_' + '_'.join([layer[0] for layer in IMG_EMBEDDING_LAYERS]) + \
@@ -228,26 +231,30 @@ def load_parameters():
                       'initial_state': 'initial_state',
                       'initial_memory': 'initial_memory',
                       'attlstmcond_1': 'decoder_AttLSTMCond2Inputs',  # 'decoder_AttLSTMCond',
+                      'target_word_embedding': 'target_word_embedding',
                       'logit_ctx': 'logit_ctx',
-                       },
+                      'logit_lstm': 'logit_lstm',
+                      'description': 'description'
+                      },
                       {'bidirectional_encoder_LSTM': 'prev_desc_emb_bidirectional_encoder_LSTM', #'prev_desc_emb_encoder_LSTM',
                       'target_word_embedding': 'target_word_embedding',
                       'decoder_AttLSTMCond': 'decoder_AttLSTMCond2Inputs', #'decoder_AttLSTMCond',
                       'target_text': 'description'
                       }
-                      ]
+                    ]
 
     STORE_PATH = 'trained_models/' + MODEL_NAME  + '/' # Models and evaluation results will be stored here
     DATASET_STORE_PATH = 'datasets/'                   # Dataset instance will be stored here
 
     SAMPLING_SAVE_MODE = 'list'                        # 'list' or 'vqa'
     VERBOSE = 1                                        # Vqerbosity level
-    RELOAD = [2, 0]                                        # If 0 start training from scratch, otherwise the model
+    RELOAD = [2]                                        # If 0 start training from scratch, otherwise the model
                                                        # Saved on epoch 'RELOAD' will be used
-    REBUILD_DATASET = True                             # Build again or use stored instance
-    MODE = 'training'                                  # 'training' or 'sampling' (if 'sampling' then RELOAD must
+    REBUILD_DATASET = False                             # Build again or use stored instance
+    MODE = 'sampling'                                  # 'training' or 'sampling' (if 'sampling' then RELOAD must
                                                        # be greater than 0 and EVAL_ON_SETS will be used)
-
+    SAMPLING_RELOAD_EPOCH = False
+    SAMPLING_RELOAD_POINT = 300
     # Extra parameters for special trainings
     TRAIN_ON_TRAINVAL = False  # train the model on both training and validation sets combined
     FORCE_RELOAD_VOCABULARY = False  # force building a new vocabulary from the training samples applicable if RELOAD > 1
