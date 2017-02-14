@@ -121,7 +121,8 @@ def apply_Video_model(params):
     
     
     ########### Load model
-    video_model = loadModel(params['STORE_PATH'], params['RELOAD'])
+    video_model = loadModel(params['STORE_PATH'], params['SAMPLING_RELOAD_POINT'],
+                            reload_epoch=params['SAMPLING_RELOAD_EPOCH'])
     video_model.setOptimizer()
     ###########
     
@@ -150,9 +151,8 @@ def apply_Video_model(params):
             params_prediction['dataset_inputs'] = params['INPUTS_IDS_DATASET']
             params_prediction['dataset_outputs'] = params['OUTPUTS_IDS_DATASET']
             params_prediction['normalize'] = params['NORMALIZE_SAMPLING']
-            extra_vars['temporally_linked'] = '-linked' in params['DATASET_NAME'] and '-upperbound' not in params['DATASET_NAME']
-
             params_prediction['alpha_factor'] = params['ALPHA_FACTOR']
+            params_prediction['temporally_linked'] = '-linked' in params['DATASET_NAME'] and '-upperbound' not in params['DATASET_NAME']
             predictions = video_model.predictBeamSearchNet(dataset, params_prediction)[s]
             predictions = video_model.decode_predictions_beam_search(predictions,
                                                                      vocab,

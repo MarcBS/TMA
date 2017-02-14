@@ -1224,8 +1224,7 @@ class VideoDesc_Model(Model_Wrapper):
         shared_FC_soft = TimeDistributed(Dense(params['OUTPUT_VOCABULARY_SIZE'],
                                                activation=params['CLASSIFIER_ACTIVATION'],
                                                W_regularizer=l2(params['WEIGHT_DECAY']),
-                                               name=params['CLASSIFIER_ACTIVATION']
-                                               ),
+                                               name=params['CLASSIFIER_ACTIVATION']),
                                          name=self.ids_outputs[0])
         softout = shared_FC_soft(out_layer)
 
