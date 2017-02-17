@@ -1,7 +1,7 @@
 
 ## Parameters
 
-base_path = '/media/HDD_2TB/DATASETS/EDUB-SegDesc/'
+base_path = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
 
 path_files = 'Annotations'
 
@@ -17,9 +17,9 @@ path_files = 'Annotations'
 #       Day2_video_1
 #       Day2_video_2
 ####
-train = 'train_list.txt'
-val = 'val_list.txt'
-test = 'test_list.txt'
+train = 'train_list_final.txt'
+val = 'val_list_final.txt'
+test = 'test_list_final.txt'
 
 # Outputs
 train_out = 'train_link_samples.txt'

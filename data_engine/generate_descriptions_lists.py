@@ -3,17 +3,23 @@ import numpy as np
 
 def main():
 
-    base_path = '/media/HDD_2TB/DATASETS/MSVD/'
+    #base_path = '/media/HDD_2TB/DATASETS/MSVD/'
+    base_path = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
 
     path_files = 'Annotations'
     
     # Inputs
-    text = 'captions.id.en'
+    #text = 'captions.id.en'
+    text = 'captions_final.id.en'
     separator = '----'
-    
-    train = 'train_list.txt'
-    val =   'val_list.txt'
-    test =  'test_list.txt'
+
+    #train = 'train_list.txt'
+    #val =   'val_list.txt'
+    #test =  'test_list.txt'
+
+    train = 'train_list_final.txt'
+    val =   'val_list_final.txt'
+    test =  'test_list_final.txt'
 
     # Outputs
     train_out = 'train_descriptions.txt'
