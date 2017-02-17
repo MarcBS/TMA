@@ -73,6 +73,7 @@ def train_model(params):
 
     else: # resume from previously trained model
         video_model = loadModel(params['PRE_TRAINED_MODEL_STORE_PATHS'], params['RELOAD'])
+        video_model.params['LR'] = params['LR']
         video_model.setOptimizer()
 
         if video_model.model_path != params['STORE_PATH']:
@@ -159,7 +160,7 @@ def apply_Video_model(params):
             params_prediction['dataset_outputs'] = params['OUTPUTS_IDS_DATASET']
             params_prediction['normalize'] = params['NORMALIZE_SAMPLING']
             params_prediction['alpha_factor'] = params['ALPHA_FACTOR']
-            params_prediction['temporally_linked'] = '-linked' in params['DATASET_NAME'] and '-upperbound' not in params['DATASET_NAME']
+            params_prediction['temporally_linked'] = '-linked' in params['DATASET_NAME'] and '-upperbound' not in params['DATASET_NAME'] and '-video' not in params['DATASET_NAME']
             predictions = video_model.predictBeamSearchNet(dataset, params_prediction)[s]
             predictions = video_model.decode_predictions_beam_search(predictions,
                                                                      vocab,
@@ -236,7 +237,7 @@ def buildCallbacks(params, model, dataset):
             extra_vars['dataset_outputs'] = params['OUTPUTS_IDS_DATASET']
             extra_vars['normalize'] =  params.get('NORMALIZE_SAMPLING', False)
             extra_vars['alpha_factor'] =  params.get('ALPHA_FACTOR', 1.)
-            extra_vars['temporally_linked'] = '-linked' in params['DATASET_NAME'] and '-upperbound' not in params['DATASET_NAME']
+            extra_vars['temporally_linked'] = '-linked' in params['DATASET_NAME'] and '-upperbound' not in params['DATASET_NAME'] and '-video' not in params['DATASET_NAME']
             input_text_id = None
             vocab_src = None
 
@@ -280,7 +281,7 @@ def buildCallbacks(params, model, dataset):
             extra_vars['dataset_outputs'] = params['OUTPUTS_IDS_DATASET']
             extra_vars['normalize'] = params['NORMALIZE_SAMPLING']
             extra_vars['alpha_factor'] = params['ALPHA_FACTOR']
-            extra_vars['temporally_linked'] = '-linked' in params['DATASET_NAME'] and '-upperbound' not in params['DATASET_NAME']
+            extra_vars['temporally_linked'] = '-linked' in params['DATASET_NAME'] and '-upperbound' not in params['DATASET_NAME'] and '-video' not in params['DATASET_NAME']
 
         callback_sampling = SampleEachNUpdates(model,
                                                dataset,

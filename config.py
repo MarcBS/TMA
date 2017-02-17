@@ -3,24 +3,35 @@ def load_parameters():
         Loads the defined parameters
     """
     # Input data params
-    DATA_ROOT_PATH = '/media/HDD_2TB/DATASETS/EDUB-SegDesc/'        # Root path to the data
-    #DATA_ROOT_PATH = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
+    #DATA_ROOT_PATH = '/media/HDD_2TB/DATASETS/EDUB-SegDesc/'        # Root path to the data
+    DATA_ROOT_PATH = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
 
     # preprocessed features
     DATASET_NAME = 'EDUB-SegDesc_features-linked'   # Dataset name (add '-linked' suffix for using
                                                     # dataset with temporally-linked training data)
+                                                    #
+                                                    #    -linked
+                                                    #    -linked-upperbound
+                                                    #    -linked-upperbound-copy
+                                                    #    -linked-upperbound-prev
+                                                    #    -linked-upperbound-nocopy
+                                                    #    -linked-video
+                                                    #    -vidtext-embed
+                                                    #
+
     PRE_TRAINED_DATASET_NAME = 'MSVD_features'      # Dataset name for reusing vocabulary of pre-trained model
                                                     # (only applicable if we are using a pre-trained model, default None)
     VOCABULARIES_MAPPING = {'description': 'description',
                         'state_below': 'description',
                         'prev_description': 'description'}
-    """
-    PRE_TRAINED_VOCABULARY_NAME = '1BillionWords_vocabulary'      # Dataset name for reusing vocabulary of pre-trained model
 
+    PRE_TRAINED_VOCABULARY_NAME = None #'1BillionWords_vocabulary'      # Dataset name for reusing vocabulary of pre-trained model
+    """
     VOCABULARIES_MAPPING = {'description': 'target_text',
                             'state_below': 'target_text',
                             'prev_description': 'target_text'}
     """
+
     # Input data
     INPUT_DATA_TYPE = 'video-features'                          # 'video-features' or 'video'
     NUM_FRAMES = 26                                             # fixed number of input frames per video
@@ -49,10 +60,16 @@ def load_parameters():
                                }
 
     # Dataset parameters
-    INPUTS_IDS_DATASET = ['video', 'state_below']  # Corresponding inputs of the dataset
-    OUTPUTS_IDS_DATASET = ['description']  # Corresponding outputs of the dataset
-    INPUTS_IDS_MODEL = ['video', 'state_below']  # Corresponding inputs of the built model
-    OUTPUTS_IDS_MODEL = ['description']  # Corresponding outputs of the built model
+    if not '-vidtext-embed' in DATASET_NAME:
+        INPUTS_IDS_DATASET = ['video', 'state_below']  # Corresponding inputs of the dataset
+        OUTPUTS_IDS_DATASET = ['description']  # Corresponding outputs of the dataset
+        INPUTS_IDS_MODEL = ['video', 'state_below']  # Corresponding inputs of the built model
+        OUTPUTS_IDS_MODEL = ['description']  # Corresponding outputs of the built model
+    else:
+        INPUTS_IDS_DATASET = ['video', 'description']  # Corresponding inputs of the dataset
+        OUTPUTS_IDS_DATASET = ['match']  # Corresponding outputs of the dataset
+        INPUTS_IDS_MODEL = ['video', 'description']  # Corresponding inputs of the built model
+        OUTPUTS_IDS_MODEL = ['match']  # Corresponding outputs of the built model
 
 
     if '-linked' in DATASET_NAME:
@@ -65,7 +82,7 @@ def load_parameters():
         INPUTS_IDS_DATASET.append('prev_description')
         INPUTS_IDS_MODEL.append('prev_description')
 
-        if '-upperbound' not in DATASET_NAME:
+        if '-upperbound' not in DATASET_NAME and '-video' not in DATASET_NAME:
             INPUTS_IDS_DATASET.append('link_index')
             INPUTS_IDS_MODEL.append('link_index')
 
@@ -74,13 +91,16 @@ def load_parameters():
     EVAL_ON_SETS = ['val', 'test']                 # Possible values: 'train', 'val' and 'test' (external evaluator)
     EVAL_ON_SETS_KERAS = []                        # Possible values: 'train', 'val' and 'test' (Keras' evaluator)
     START_EVAL_ON_EPOCH = 0                        # First epoch where the model will be evaluated
-    EVAL_EACH_EPOCHS = False                       # Select whether evaluate between N epochs or N updates
-    EVAL_EACH = 50                                 # Sets the evaluation frequency (epochs or updates)
+    EVAL_EACH_EPOCHS = True                       # Select whether evaluate between N epochs or N updates
+    EVAL_EACH = 1                                 # Sets the evaluation frequency (epochs or updates)
 
     # Search parameters
     SAMPLING = 'max_likelihood'                   # Possible values: multinomial or max_likelihood (recommended)
     TEMPERATURE = 1                               # Multinomial sampling parameter
-    BEAM_SEARCH = True                            # Switches on-off the beam search procedure
+    if not '-vidtext-embed' in DATASET_NAME:
+        BEAM_SEARCH = True                            # Switches on-off the beam search procedure
+    else:
+        BEAM_SEARCH = False
     BEAM_SIZE = 10                                # Beam size (in case of BEAM_SEARCH == True)
     BEAM_SEARCH_COND_INPUT = 1                    # Index of the conditional input used in beam search (i.e., state_below)
     OPTIMIZED_SEARCH = True                       # Compute annotations only a single time per sample
@@ -121,7 +141,7 @@ def load_parameters():
     CLASSIFIER_ACTIVATION = 'softmax'
 
     OPTIMIZER = 'Adam'                            # Optimizer
-    LR = 0.001                                    # Learning rate. Recommended values - Adam 0.001 - Adadelta 1.0
+    LR = 0.001#0.001                                    # Learning rate. Recommended values - Adam 0.001 - Adadelta 1.0
     CLIP_C = 10.                                  # During training, clip gradients to this norm
     SAMPLE_WEIGHTS = True                         # Select whether we use a weights matrix (mask) for the data outputs
     LR_DECAY = 1                                  # Minimum number of epochs before the next LR decay. Set to None if don't want to decay the learning rate
@@ -141,12 +161,17 @@ def load_parameters():
     EARLY_STOP = True                             # Turns on/off the early stop protocol
     PATIENCE = 10                                 # We'll stop if the val STOP_METRIC does not improve after this
                                                   # number of evaluations
-    STOP_METRIC = 'Bleu_4'                        # Metric for the stop
+
+    if not '-vidtext-embed' in DATASET_NAME:
+        STOP_METRIC = 'Bleu_4'                        # Metric for the stop
+    else:
+        STOP_METRIC = 'accuracy'
 
     # Model parameters
     MODEL_TYPE = 'TemporallyLinkedVideoDescriptionAtt'       # 'ArcticVideoCaptionWithInit'
                                                     # 'TemporallyLinkedVideoDescriptionNoAtt'
                                                     # 'TemporallyLinkedVideoDescriptionAtt'
+                                                    # 'VideoTextEmbedding'
 
     RNN_TYPE = 'LSTM'                             # RNN unit type ('LSTM' and 'GRU' supported)
 
@@ -199,7 +224,7 @@ def load_parameters():
     USE_RECURRENT_DROPOUT = False                 # Use dropout in recurrent layers # DANGEROUS!
     RECURRENT_DROPOUT_P = 0.5                     # Percentage of units to drop in recurrent layers
 
-    USE_NOISE = False                             # Use gaussian noise during training
+    USE_NOISE = True                             # Use gaussian noise during training
     NOISE_AMOUNT = 0.01                           # Amount of noise
 
     USE_BATCH_NORMALIZATION = True                # If True it is recommended to deactivate Dropout
@@ -209,7 +234,7 @@ def load_parameters():
     USE_L2 = False                                # L2 normalization on the features
 
     # Results plot and models storing parameters
-    EXTRA_NAME = ''                    # This will be appended to the end of the model name
+    EXTRA_NAME = 'vidtext_embed'                    # This will be appended to the end of the model name
     MODEL_NAME = DATASET_NAME + '_' + MODEL_TYPE +\
                  '_txtemb_' + str(TARGET_TEXT_EMBEDDING_SIZE) + \
                  '_imgemb_' + '_'.join([layer[0] for layer in IMG_EMBEDDING_LAYERS]) + \
@@ -217,24 +242,37 @@ def load_parameters():
                  '_lstm_' + str(DECODER_HIDDEN_SIZE) + \
                  '_additional_output_mode_' + str(ADDITIONAL_OUTPUT_MERGE_MODE) + \
                  '_deepout_' + '_'.join([layer[0] for layer in DEEP_OUTPUT_LAYERS]) + \
-                 '_' + OPTIMIZER + '_lr_' + str(LR) + '_decay_' + str(LR_DECAY) + '-' + str(LR_GAMMA)
+                 '_' + OPTIMIZER + '_decay_' + str(LR_DECAY) + '-' + str(LR_GAMMA)
 
     MODEL_NAME += EXTRA_NAME
 
     # Name and location of the pre-trained model (only if RELOAD > 0)
-    PRE_TRAINED_MODELS = ['MSVD_best_model', '1BillionWords'] # default: MODEL_NAME
+    PRE_TRAINED_MODELS = ['MSVD_best_model']#['MSVD_best_model', '1BillionWords'] # default: MODEL_NAME
     PRE_TRAINED_MODEL_STORE_PATHS = map(lambda x: 'trained_models/' + x  + '/', PRE_TRAINED_MODELS) if isinstance(PRE_TRAINED_MODELS, list) else 'trained_models/'+PRE_TRAINED_MODELS+'/'
     LOAD_WEIGHTS_ONLY = True                           # Load weights of pre-trained model or complete Model_Wrapper instance
     # Layers' mapping from old to new model if LOAD_WEIGHTS_ONLY
     #   You can check the layers of a model with [layer.name for layer in model_wrapper.model.layers]
-    LAYERS_MAPPING = [{'bidirectional_encoder': 'bidirectional_encoder_LSTM',
+    if '-video' in DATASET_NAME:
+        LAYERS_MAPPING = [{'bidirectional_encoder': 'bidirectional_encoder_LSTM',
+                           'bidirectional_encoder': 'prev_desc_emb_bidirectional_encoder_LSTM',
+                          'initial_state': 'initial_state',
+                          'initial_memory': 'initial_memory',
+                          'attlstmcond_1': 'decoder_AttLSTMCond2Inputs',  # 'decoder_AttLSTMCond',
+                          'target_word_embedding': 'target_word_embedding',
+                          'logit_ctx': 'logit_ctx',
+                          'logit_lstm': 'logit_lstm',
+                          'description': 'description'
+                          }
+                        ]
+    else:
+        LAYERS_MAPPING = [{'bidirectional_encoder': 'bidirectional_encoder_LSTM',
                       'initial_state': 'initial_state',
                       'initial_memory': 'initial_memory',
                       'attlstmcond_1': 'decoder_AttLSTMCond2Inputs',  # 'decoder_AttLSTMCond',
-                      'target_word_embedding': 'target_word_embedding',
+                      #'target_word_embedding': 'target_word_embedding',
                       'logit_ctx': 'logit_ctx',
                       'logit_lstm': 'logit_lstm',
-                      'description': 'description'
+                      #'description': 'description'
                       },
                       {'bidirectional_encoder_LSTM': 'prev_desc_emb_bidirectional_encoder_LSTM', #'prev_desc_emb_encoder_LSTM',
                       'target_word_embedding': 'target_word_embedding',
@@ -248,10 +286,10 @@ def load_parameters():
 
     SAMPLING_SAVE_MODE = 'list'                        # 'list' or 'vqa'
     VERBOSE = 1                                        # Vqerbosity level
-    RELOAD = [2]                                        # If 0 start training from scratch, otherwise the model
+    RELOAD = [2] #[2, 0]                                        # If 0 start training from scratch, otherwise the model
                                                        # Saved on epoch 'RELOAD' will be used
-    REBUILD_DATASET = False                             # Build again or use stored instance
-    MODE = 'sampling'                                  # 'training' or 'sampling' (if 'sampling' then RELOAD must
+    REBUILD_DATASET = True                             # Build again or use stored instance
+    MODE = 'training'                                  # 'training' or 'sampling' (if 'sampling' then RELOAD must
                                                        # be greater than 0 and EVAL_ON_SETS will be used)
     SAMPLING_RELOAD_EPOCH = False
     SAMPLING_RELOAD_POINT = 300
