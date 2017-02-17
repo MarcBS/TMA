@@ -27,7 +27,7 @@ class VideoDesc_Model(Model_Wrapper):
         pass
 
     def __init__(self, params, type='VideoDesc_Model', verbose=1, structure_path=None, weights_path=None,
-                 model_name=None, vocabularies=None, store_path=None):
+                 model_name=None, vocabularies=None, store_path=None, set_optimizer=True):
         """
             VideoDesc_Model object constructor. 
             
@@ -103,8 +103,8 @@ class VideoDesc_Model(Model_Wrapper):
         if verbose > 0:
             print str(self)
             self.model.summary()
-
-        self.setOptimizer()
+        if set_optimizer:
+            self.setOptimizer()
 
     def setOptimizer(self, **kwargs):
 
