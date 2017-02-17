@@ -408,18 +408,18 @@ def insertTemporallyLinkedCaptions(ds, params, set_names=['train'],
 
         if not video:
             # Overwrite outputs assigning the new outputs repeat pattern
-            ds.setOutput(feat_type,
-                             s,
-                             type='text',
-                             id=params['OUTPUTS_IDS_DATASET'][0],
-                             build_vocabulary=True,
-                             tokenization=params['TOKENIZATION_METHOD'],
-                             fill=params['FILL'],
-                             pad_on_batch=True,
-                             max_text_len=params['MAX_OUTPUT_TEXT_LEN'],
-                             sample_weights=params['SAMPLE_WEIGHTS'],
-                             min_occ=params['MIN_OCCURRENCES_VOCAB'],
-                             overwrite_split=True)
+            ds.setOutput(final_outputs,
+                         s,
+                         type='text',
+                         id=params['OUTPUTS_IDS_DATASET'][0],
+                         build_vocabulary=True,
+                         tokenization=params['TOKENIZATION_METHOD'],
+                         fill=params['FILL'],
+                         pad_on_batch=True,
+                         max_text_len=params['MAX_OUTPUT_TEXT_LEN'],
+                         sample_weights=params['SAMPLE_WEIGHTS'],
+                         min_occ=params['MIN_OCCURRENCES_VOCAB'],
+                         overwrite_split=True)
 
             # Overwrite the input state_below assigning the new outputs repeat pattern
             ds.setInput(final_outputs,
