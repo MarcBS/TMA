@@ -82,7 +82,7 @@ if __name__ == "__main__":
     total_guesses = 0
     while True:
         try:
-            matches, misses, guesses = sample(ds, vocab, model, 4, split='train')
+            matches, misses, guesses = sample(ds, vocab, model, 4, split='train', verbose=0)
             total_matches += matches
             total_misses += misses
             total_guesses += guesses
