@@ -1,6 +1,7 @@
 import glob
 import os
 import numpy as np
+import shutil
 
 base_path = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
 path_features = 'Features'
@@ -39,8 +40,9 @@ counts_lists = ['train_feat_counts.txt', 'val_feat_counts.txt', 'test_feat_count
 
 #########
 
-if not os.path.isdir(base_path+'/'+path_features+'/'+features_name):
-    os.makedirs(base_path+'/'+path_features+'/'+features_name)
+if os.path.isdir(base_path+'/'+path_features+'/'+features_name):
+    shutil.rmtree(base_path+'/'+path_features+'/'+features_name)
+os.makedirs(base_path+'/'+path_features+'/'+features_name)
 
 if not os.path.isdir(base_path+'/'+path_annotations+'/'+features_name):
     os.makedirs(base_path+'/'+path_annotations+'/'+features_name)

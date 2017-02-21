@@ -117,7 +117,7 @@ class VideoDesc_Model(Model_Wrapper):
                                                  clipnorm=self.params['CLIP_C'],
                                                  loss=self.params['LOSS'],
                                                  optimizer=self.params['OPTIMIZER'],
-                                                 sample_weight_mode='temporal' if self.params['SAMPLE_WEIGHTS'] else None)
+                                                 sample_weight_mode='temporal' if self.params.get('SAMPLE_WEIGHTS', False) else None)
 
         """
         # compile differently depending if our model is 'Sequential' or 'Graph'
@@ -1375,7 +1375,7 @@ class VideoDesc_Model(Model_Wrapper):
 
     def VideoTextEmbedding(self, params):
         """
-        :param params:
+        :param params: config parameters
         :return:
         """
 
@@ -1414,7 +1414,9 @@ class VideoDesc_Model(Model_Wrapper):
                                                        'USE_RECURRENT_DROPOUT'] else None,
                                                    return_sequences=False,
                                                    name='encoder_' + params['RNN_TYPE'])(input_video)
-            input_video = merge([input_video, encoder], mode='concat', concat_axis=2)
+            ctx_mean = Lambda(lambda x: K.mean(x, axis=1),
+                              output_shape=lambda s: (s[0], s[2]), name='lambda_mean')(input_video)
+            input_video = merge([ctx_mean, encoder], mode='concat', concat_axis=-1)
             input_video = Regularize(input_video, params, name='input_video')
 
             # 2.3. Potentially deep encoder
@@ -1449,8 +1451,10 @@ class VideoDesc_Model(Model_Wrapper):
                                                                    return_sequences=False,
                                                                    name='encoder_' + str(n_layer))(input_video)
 
-                current_input_video = Regularize(current_input_video, params, name='input_video_' + str(n_layer))
-                input_video = merge([input_video, current_input_video], mode='sum')
+                ctx_mean = Lambda(lambda x: K.mean(x, axis=1),
+                                  output_shape=lambda s: (s[0], s[2]), name='lambda_mean')(current_input_video)
+                input_video = merge([input_video, ctx_mean], mode='sum')
+                input_video = Regularize(input_video, params, name='input_video_' + str(n_layer))
 
 
 
@@ -1536,6 +1540,21 @@ class VideoDesc_Model(Model_Wrapper):
                 current_prev_desc_enc = Regularize(current_prev_desc_enc, params, name='prev_desc_enc_' + str(n_layer))
                 prev_desc_enc = merge([prev_desc_enc, current_prev_desc_enc], mode='sum')
 
+        ### FC layers before merge
+        input_video = Dense(params['TARGET_TEXT_EMBEDDING_SIZE'],
+                            W_regularizer=l2(params['WEIGHT_DECAY']),
+                            activation='linear',
+                            name='logit_ctx')(input_video)
+
+        prev_desc_enc = Dense(params['TARGET_TEXT_EMBEDDING_SIZE'],
+                              W_regularizer=l2(params['WEIGHT_DECAY']),
+                              activation='linear',
+                              name='logit_prev')(prev_desc_enc)
+
+        ### Regularization of FC outputs
+        input_video = Regularize(input_video, params, name='out_layer_ctx')
+        prev_desc_enc = Regularize(prev_desc_enc, params, name='out_layer_prev')
+
 
         ### Merge of FC outputs
         if params['WEIGHTED_MERGE']:
@@ -1571,7 +1590,7 @@ class VideoDesc_Model(Model_Wrapper):
             shared_reg_deep_list.append(shared_reg_out_layer)
 
         # 3.7. Output layer: Softmax
-        shared_FC_soft = Dense(params['OUTPUT_VOCABULARY_SIZE'],
+        shared_FC_soft = Dense(2,
                                activation=params['CLASSIFIER_ACTIVATION'],
                                W_regularizer=l2(params['WEIGHT_DECAY']),
                                name=self.ids_outputs[0])

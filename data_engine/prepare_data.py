@@ -19,43 +19,77 @@ def build_dataset(params):
         name = params['DATASET_NAME']
         ds = Dataset(name, base_path, silence=silence)
 
-        # OUTPUT DATA
-        # Let's load the train, val and test splits of the descriptions (outputs)
-        #    the files include a description per line. In this dataset a variable number
-        #    of descriptions per video are provided.
-        ds.setOutput(base_path + '/' + params['DESCRIPTION_FILES']['train'],
-                     'train',
-                     type='text',
-                     id=params['OUTPUTS_IDS_DATASET'][0],
-                     build_vocabulary=True,
-                     tokenization=params['TOKENIZATION_METHOD'],
-                     fill=params['FILL'],
-                     pad_on_batch=True,
-                     max_text_len=params['MAX_OUTPUT_TEXT_LEN'],
-                     sample_weights=params['SAMPLE_WEIGHTS'],
-                     min_occ=params['MIN_OCCURRENCES_VOCAB'])
+        if not '-vidtext-embed' in params['DATASET_NAME']:
+            # OUTPUT DATA
+            # Let's load the train, val and test splits of the descriptions (outputs)
+            #    the files include a description per line. In this dataset a variable number
+            #    of descriptions per video are provided.
+            ds.setOutput(base_path + '/' + params['DESCRIPTION_FILES']['train'],
+                         'train',
+                         type='text',
+                         id=params['OUTPUTS_IDS_DATASET'][0],
+                         build_vocabulary=True,
+                         tokenization=params['TOKENIZATION_METHOD'],
+                         fill=params['FILL'],
+                         pad_on_batch=True,
+                         max_text_len=params['MAX_OUTPUT_TEXT_LEN'],
+                         sample_weights=params['SAMPLE_WEIGHTS'],
+                         min_occ=params['MIN_OCCURRENCES_VOCAB'])
 
-        ds.setOutput(base_path + '/' + params['DESCRIPTION_FILES']['val'],
-                     'val',
-                     type='text',
-                     id=params['OUTPUTS_IDS_DATASET'][0],
-                     build_vocabulary=True,
-                     pad_on_batch=True,
-                     tokenization=params['TOKENIZATION_METHOD'],
-                     sample_weights=params['SAMPLE_WEIGHTS'],
-                     max_text_len=params['MAX_OUTPUT_TEXT_LEN_TEST'],
-                     min_occ=params['MIN_OCCURRENCES_VOCAB'])
+            ds.setOutput(base_path + '/' + params['DESCRIPTION_FILES']['val'],
+                         'val',
+                         type='text',
+                         id=params['OUTPUTS_IDS_DATASET'][0],
+                         build_vocabulary=True,
+                         pad_on_batch=True,
+                         tokenization=params['TOKENIZATION_METHOD'],
+                         sample_weights=params['SAMPLE_WEIGHTS'],
+                         max_text_len=params['MAX_OUTPUT_TEXT_LEN_TEST'],
+                         min_occ=params['MIN_OCCURRENCES_VOCAB'])
 
-        ds.setOutput(base_path + '/' + params['DESCRIPTION_FILES']['test'],
-                     'test',
-                     type='text',
-                     id=params['OUTPUTS_IDS_DATASET'][0],
-                     build_vocabulary=True,
-                     pad_on_batch=True,
-                     tokenization=params['TOKENIZATION_METHOD'],
-                     sample_weights=params['SAMPLE_WEIGHTS'],
-                     max_text_len=params['MAX_OUTPUT_TEXT_LEN_TEST'],
-                     min_occ=params['MIN_OCCURRENCES_VOCAB'])
+            ds.setOutput(base_path + '/' + params['DESCRIPTION_FILES']['test'],
+                         'test',
+                         type='text',
+                         id=params['OUTPUTS_IDS_DATASET'][0],
+                         build_vocabulary=True,
+                         pad_on_batch=True,
+                         tokenization=params['TOKENIZATION_METHOD'],
+                         sample_weights=params['SAMPLE_WEIGHTS'],
+                         max_text_len=params['MAX_OUTPUT_TEXT_LEN_TEST'],
+                         min_occ=params['MIN_OCCURRENCES_VOCAB'])
+
+        else:
+            # Use descriptions as inputs instead --> 'matching'/'non-matching' as output
+            ds.setInput(base_path + '/' + params['DESCRIPTION_FILES']['train'],
+                         'train',
+                         type='text',
+                         id=params['INPUTS_IDS_DATASET'][1],
+                         build_vocabulary=True,
+                         tokenization=params['TOKENIZATION_METHOD'],
+                         fill=params['FILL'],
+                         pad_on_batch=True,
+                         max_text_len=params['MAX_OUTPUT_TEXT_LEN'],
+                         min_occ=params['MIN_OCCURRENCES_VOCAB'])
+
+            ds.setInput(base_path + '/' + params['DESCRIPTION_FILES']['val'],
+                         'val',
+                         type='text',
+                         id=params['INPUTS_IDS_DATASET'][1],
+                         build_vocabulary=True,
+                         pad_on_batch=True,
+                         tokenization=params['TOKENIZATION_METHOD'],
+                         max_text_len=params['MAX_OUTPUT_TEXT_LEN_TEST'],
+                         min_occ=params['MIN_OCCURRENCES_VOCAB'])
+
+            ds.setInput(base_path + '/' + params['DESCRIPTION_FILES']['test'],
+                         'test',
+                         type='text',
+                         id=params['INPUTS_IDS_DATASET'][1],
+                         build_vocabulary=True,
+                         pad_on_batch=True,
+                         tokenization=params['TOKENIZATION_METHOD'],
+                         max_text_len=params['MAX_OUTPUT_TEXT_LEN_TEST'],
+                         min_occ=params['MIN_OCCURRENCES_VOCAB'])
 
         # INPUT DATA
         # Let's load the associated videos (inputs)
@@ -81,7 +115,7 @@ def build_dataset(params):
                             max_video_len=params['NUM_FRAMES'],
                             feat_len=params['IMG_FEAT_SIZE'])
 
-        if len(params['INPUTS_IDS_DATASET']) > 1:
+        if not '-vidtext-embed' in params['DATASET_NAME'] and len(params['INPUTS_IDS_DATASET']) > 1:
             ds.setInput(base_path + '/' + params['DESCRIPTION_FILES']['train'],
                         'train',
                         type='text',
@@ -99,8 +133,9 @@ def build_dataset(params):
             ds.setInput(None, 'val', type='ghost', id=params['INPUTS_IDS_DATASET'][1], required=False)
             ds.setInput(None, 'test', type='ghost', id=params['INPUTS_IDS_DATASET'][1], required=False)
 
+
         # Set inputs for temporally-linked samples
-        if '-linked' in params['DATASET_NAME']:
+        if not '-vidtext-embed' in params['DATASET_NAME'] and '-linked' in params['DATASET_NAME']:
             # Set input captions from previous event/video
             if '-upperbound' not in params['DATASET_NAME']:
                 if '-video' in params['DATASET_NAME']:
@@ -146,11 +181,19 @@ def build_dataset(params):
                 num_captions_test = repeat_images['test']
 
 
-        # Process dataset for keeping only one caption per video and storing the rest in a dict() with the following format:
-        #        ds.extra_variables[set_name][id_output][img_position] = [cap1, cap2, cap3, ..., capN]
-        keep_n_captions(ds, repeat=[num_captions_val, num_captions_test], n=1, set_names=['val', 'test'])
+        if not '-vidtext-embed' in params['DATASET_NAME']:
+            # Process dataset for keeping only one caption per video and storing the rest in a dict() with the following format:
+            #        ds.extra_variables[set_name][id_output][img_position] = [cap1, cap2, cap3, ..., capN]
+            keep_n_captions(ds, repeat=[num_captions_val, num_captions_test], n=1, set_names=['val', 'test'])
 
-        if '-linked' in params['DATASET_NAME'] and '-upperbound' not in params['DATASET_NAME'] and '-video' not in params['DATASET_NAME']:
+        else:
+            # Set outputs for -vidtext-embed model
+            insertVidTextEmbedNegativeSamples(ds, params, repeat=[num_captions_train, num_captions_val, num_captions_test])
+
+        if not '-vidtext-embed' in params['DATASET_NAME'] and \
+                        '-linked' in params['DATASET_NAME'] and \
+                        '-upperbound' not in params['DATASET_NAME'] and \
+                        '-video' not in params['DATASET_NAME']:
             # Set previous data indices
             for s, file in params['LINK_SAMPLE_FILES'].iteritems():
                 if s in repeat_images:
@@ -465,3 +508,59 @@ def insertTemporallyLinkedCaptions(ds, params, set_names=['train'],
         repeat_images[s] = images_repeat
 
     return ds, repeat_images
+
+
+def insertVidTextEmbedNegativeSamples(ds, params, repeat):
+    """
+    Inserts negative balanced examples for training a Video-Text Embedding model.
+
+    :param ds: dataset object with inputs of positive samples inserted
+    :param params: config params
+    :param repeat: number of times each video was repeated
+    """
+
+    for s,r in zip(['train', 'val', 'test'], repeat):
+
+        # Get data from dataset
+        X = None
+        num_samples = 0
+        exec('num_samples = ds.len_'+s)
+        exec('X = ds.X_'+s)
+
+        video_indices = X[params['INPUTS_IDS_DATASET'][0]]
+        descriptions = X[params['INPUTS_IDS_DATASET'][1]]
+
+        # Get real indices considering repetitions
+        desc_real_indices = np.repeat(range(len(r)), r)
+
+        # Let's generate some random video-description pairs
+        negative_videos = np.random.choice(video_indices, num_samples, replace=True)
+        for neg_id in negative_videos:
+
+            # Insert index of repeated video (now as negative sample)
+            video_indices.append(neg_id)
+
+            # New find random description (avoiding correct descriptions for the selected video)
+            real_id = desc_real_indices[neg_id]
+            desc_id = np.random.choice([ind for ind in range(num_samples) if desc_real_indices[ind] != real_id], 1)[0]
+
+            # Insert description of negative sample
+            descriptions.append(descriptions[desc_id])
+
+
+        # Re-insert videos and descriptions, including new length
+        exec('ds.X_'+s+'["'+ params['INPUTS_IDS_DATASET'][0] +'"] = video_indices')
+        exec('ds.X_'+s+'["'+ params['INPUTS_IDS_DATASET'][1] +'"] = descriptions')
+        exec('ds.len_'+s+' = num_samples*2')
+
+
+        # Insert output, which consists in 'matching'/'non-matching labels'
+        matches = [1 for i in range(num_samples)]+[0 for i in range(num_samples)]
+        ds.setOutput(matches,
+                    s,
+                    type='categorical',
+                    id=params['OUTPUTS_IDS_DATASET'][0])
+
+    ds.setClasses(['matching', 'non-matching'], id=params['OUTPUTS_IDS_DATASET'][0])
+
+

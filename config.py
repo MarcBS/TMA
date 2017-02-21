@@ -7,7 +7,7 @@ def load_parameters():
     DATA_ROOT_PATH = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
 
     # preprocessed features
-    DATASET_NAME = 'EDUB-SegDesc_features-linked'   # Dataset name (add '-linked' suffix for using
+    DATASET_NAME = 'EDUB-SegDesc_features-vidtext-embed'   # Dataset name (add '-linked' suffix for using
                                                     # dataset with temporally-linked training data)
                                                     #
                                                     #    -linked
@@ -86,8 +86,12 @@ def load_parameters():
             INPUTS_IDS_DATASET.append('link_index')
             INPUTS_IDS_MODEL.append('link_index')
 
+
     # Evaluation params
-    METRICS = ['coco']  # Metric used for evaluating model after each epoch (leave empty if only prediction is required)
+    if not '-vidtext-embed' in DATASET_NAME:
+        METRICS = ['coco']  # Metric used for evaluating model after each epoch (leave empty if only prediction is required)
+    else:
+        METRICS = ['multiclass_metrics']
     EVAL_ON_SETS = ['val', 'test']                 # Possible values: 'train', 'val' and 'test' (external evaluator)
     EVAL_ON_SETS_KERAS = []                        # Possible values: 'train', 'val' and 'test' (Keras' evaluator)
     START_EVAL_ON_EPOCH = 0                        # First epoch where the model will be evaluated
@@ -109,7 +113,10 @@ def load_parameters():
                                                   # (see: arxiv.org/abs/1609.08144)
 
     # Sampling params: Show some samples during training
-    SAMPLE_ON_SETS = ['train', 'val']             # Possible values: 'train', 'val' and 'test'
+    if not '-vidtext-embed' in DATASET_NAME:
+        SAMPLE_ON_SETS = ['train', 'val']             # Possible values: 'train', 'val' and 'test'
+    else:
+        SAMPLE_ON_SETS = []
     N_SAMPLES = 5                                 # Number of samples generated
     START_SAMPLING_ON_EPOCH = 0                   # First epoch where the model will be evaluated
     SAMPLE_EACH_UPDATES = 50                     # Sampling frequency (default 450)
@@ -143,7 +150,8 @@ def load_parameters():
     OPTIMIZER = 'Adam'                            # Optimizer
     LR = 0.001#0.001                                    # Learning rate. Recommended values - Adam 0.001 - Adadelta 1.0
     CLIP_C = 10.                                  # During training, clip gradients to this norm
-    SAMPLE_WEIGHTS = True                         # Select whether we use a weights matrix (mask) for the data outputs
+    if not '-vidtext-embed' in DATASET_NAME:
+        SAMPLE_WEIGHTS = True                         # Select whether we use a weights matrix (mask) for the data outputs
     LR_DECAY = 1                                  # Minimum number of epochs before the next LR decay. Set to None if don't want to decay the learning rate
     LR_GAMMA = 0.95                               # Multiplier used for decreasing the LR
 
@@ -159,7 +167,7 @@ def load_parameters():
 
     # Early stop parameters
     EARLY_STOP = True                             # Turns on/off the early stop protocol
-    PATIENCE = 10                                 # We'll stop if the val STOP_METRIC does not improve after this
+    PATIENCE = 20                                 # We'll stop if the val STOP_METRIC does not improve after this
                                                   # number of evaluations
 
     if not '-vidtext-embed' in DATASET_NAME:
@@ -168,7 +176,7 @@ def load_parameters():
         STOP_METRIC = 'accuracy'
 
     # Model parameters
-    MODEL_TYPE = 'TemporallyLinkedVideoDescriptionAtt'       # 'ArcticVideoCaptionWithInit'
+    MODEL_TYPE = 'VideoTextEmbedding'       # 'ArcticVideoCaptionWithInit'
                                                     # 'TemporallyLinkedVideoDescriptionNoAtt'
                                                     # 'TemporallyLinkedVideoDescriptionAtt'
                                                     # 'VideoTextEmbedding'
@@ -264,6 +272,13 @@ def load_parameters():
                           'description': 'description'
                           }
                         ]
+    elif '-vidtext-embed' in DATASET_NAME:
+        LAYERS_MAPPING = [{'bidirectional_encoder': 'bidirectional_encoder_LSTM',
+                           'bidirectional_encoder': 'prev_desc_emb_bidirectional_encoder_LSTM',
+                           'target_word_embedding': 'target_word_embedding',
+                           'logit_ctx': 'logit_ctx',
+                           }
+                          ]
     else:
         LAYERS_MAPPING = [{'bidirectional_encoder': 'bidirectional_encoder_LSTM',
                       'initial_state': 'initial_state',
