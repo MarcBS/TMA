@@ -27,7 +27,7 @@ class VideoDesc_Model(Model_Wrapper):
         pass
 
     def __init__(self, params, type='VideoDesc_Model', verbose=1, structure_path=None, weights_path=None,
-                 model_name=None, vocabularies=None, store_path=None, set_optimizer=True):
+                 model_name=None, vocabularies=None, store_path=None, set_optimizer=True, clear_dirs=True):
         """
             VideoDesc_Model object constructor. 
             
@@ -59,7 +59,7 @@ class VideoDesc_Model(Model_Wrapper):
         self.ids_inputs = params['INPUTS_IDS_MODEL']
         self.ids_outputs = params['OUTPUTS_IDS_MODEL']
         # Sets the model name and prepares the folders for storing the models
-        self.setName(model_name, models_path=store_path)
+        self.setName(model_name, models_path=store_path, clear_dirs=clear_dirs)
 
         # Prepare target word embedding
         if params['TRG_PRETRAINED_VECTORS'] is not None:
