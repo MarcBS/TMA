@@ -113,7 +113,8 @@ def build_dataset(params):
                             id=params['INPUTS_IDS_DATASET'][0],
                             repeat_set=num_cap,
                             max_video_len=params['NUM_FRAMES'],
-                            feat_len=params['IMG_FEAT_SIZE'])
+                            feat_len=params['IMG_FEAT_SIZE'],
+                            data_augmentation_types=params['DATA_AUGMENTATION_TYPE'])
 
         if not '-vidtext-embed' in params['DATASET_NAME'] and len(params['INPUTS_IDS_DATASET']) > 1:
             ds.setInput(base_path + '/' + params['DESCRIPTION_FILES']['train'],
@@ -447,7 +448,8 @@ def insertTemporallyLinkedCaptions(ds, params, set_names=['train'],
                         repeat_set=images_repeat,
                         max_video_len=params['NUM_FRAMES'],
                         feat_len=params['IMG_FEAT_SIZE'],
-                        overwrite_split=True)
+                        overwrite_split=True,
+                        data_augmentation_types=params['DATA_AUGMENTATION_TYPE'])
 
         if not video:
             # Overwrite outputs assigning the new outputs repeat pattern
@@ -489,7 +491,8 @@ def insertTemporallyLinkedCaptions(ds, params, set_names=['train'],
                         repeat_set=images_repeat,
                         max_video_len=params['NUM_FRAMES'],
                         feat_len=params['IMG_FEAT_SIZE'],
-                        overwrite_split=True)
+                        overwrite_split=True,
+                        data_augmentation_types=params['DATA_AUGMENTATION_TYPE'])
         else:
             # Set new input captions from previous temporally-linked event/video
             ds.setInput(final_inputs,
