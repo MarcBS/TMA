@@ -3,8 +3,8 @@ def load_parameters():
         Loads the defined parameters
     """
     # Input data params
-    #DATA_ROOT_PATH = '/media/HDD_2TB/DATASETS/EDUB-SegDesc/'        # Root path to the data
-    DATA_ROOT_PATH = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
+    DATA_ROOT_PATH = '/media/HDD_2TB/DATASETS/EDUB-SegDesc/'        # Root path to the data
+    #DATA_ROOT_PATH = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
 
     # preprocessed features
     DATASET_NAME = 'EDUB-SegDesc_features'   # Dataset name (add '-linked' suffix for using
@@ -21,9 +21,9 @@ def load_parameters():
     PRE_TRAINED_DATASET_NAME = None #'MSVD_features'      # Dataset name for reusing vocabulary of pre-trained model
                                                     # (only applicable if we are using a pre-trained model, default None)
     VOCABULARIES_MAPPING = {'description': 'description',
-                        'state_below': 'description',
-                        'prev_description': 'description'}
-
+                            'state_below': 'description',
+                            'prev_description': 'description'}
+    VOCABULARIES_MAPPING = {}
     PRE_TRAINED_VOCABULARY_NAME = None #'1BillionWords_vocabulary'      # Dataset name for reusing vocabulary of pre-trained model
     """
     VOCABULARIES_MAPPING = {'description': 'target_text',
@@ -147,12 +147,12 @@ def load_parameters():
     LOSS = 'categorical_crossentropy'
     CLASSIFIER_ACTIVATION = 'softmax'
 
-    OPTIMIZER = 'Adam'                            # Optimizer
-    LR = 0.001#0.001                                    # Learning rate. Recommended values - Adam 0.001 - Adadelta 1.0
+    OPTIMIZER = 'Adadelta'                            # Optimizer
+    LR = 1.                                   # Learning rate. Recommended values - Adam 0.001 - Adadelta 1.0
     CLIP_C = 10.                                  # During training, clip gradients to this norm
     if not '-vidtext-embed' in DATASET_NAME:
         SAMPLE_WEIGHTS = True                         # Select whether we use a weights matrix (mask) for the data outputs
-    LR_DECAY = 1                                  # Minimum number of epochs before the next LR decay. Set to None if don't want to decay the learning rate
+    LR_DECAY = None                                  # Minimum number of epochs before the next LR decay. Set to None if don't want to decay the learning rate
     LR_GAMMA = 0.95                               # Multiplier used for decreasing the LR
 
     # Training parameters
@@ -176,7 +176,7 @@ def load_parameters():
         STOP_METRIC = 'accuracy'
 
     # Model parameters
-    MODEL_TYPE = 'ArcticVideoCaptionNoLSTMEncWithInit'       # 'ArcticVideoCaptionWithInit'
+    MODEL_TYPE = 'ArcticVideoCaptionWithInit'       # 'ArcticVideoCaptionWithInit'
                                                     # 'ArcticVideoCaptionNoLSTMEncWithInit'
                                                     # 'TemporallyLinkedVideoDescriptionNoAtt'
                                                     # 'TemporallyLinkedVideoDescriptionAtt'
@@ -185,8 +185,8 @@ def load_parameters():
     RNN_TYPE = 'LSTM'                             # RNN unit type ('LSTM' and 'GRU' supported)
 
     # Input text parameters
-    TARGET_TEXT_EMBEDDING_SIZE = 150              # Source language word embedding size (ABiViRNet 301)
-    TRG_PRETRAINED_VECTORS = None # DATA_ROOT_PATH + '/Annotations/word2vec.%s.npy' % TRG_LAN                 # Path to pretrained vectors. (e.g. DATA_ROOT_PATH + '/DATA/word2vec.%s.npy' % TRG_LAN)
+    TARGET_TEXT_EMBEDDING_SIZE = 301              # Source language word embedding size (ABiViRNet 301)
+    TRG_PRETRAINED_VECTORS = None #'/media/HDD_2TB/DATASETS/cnn_polarity/DATA/word2vec.en.npy' # Path to pretrained vectors. (e.g. DATA_ROOT_PATH + '/DATA/word2vec.%s.npy' % TRG_LAN)
                                                   # Set to None if you don't want to use pretrained vectors.
                                                   # When using pretrained word embeddings, the size of the pretrained word embeddings must match with the word embeddings size.
     TRG_PRETRAINED_VECTORS_TRAINABLE = True      # Finetune or not the target word embedding vectors.
@@ -262,7 +262,7 @@ def load_parameters():
             #['MSVD_best_model']
             # #['MSVD_best_model', '1BillionWords']
     PRE_TRAINED_MODEL_STORE_PATHS = map(lambda x: 'trained_models/' + x  + '/', PRE_TRAINED_MODELS) if isinstance(PRE_TRAINED_MODELS, list) else 'trained_models/'+PRE_TRAINED_MODELS+'/'
-    LOAD_WEIGHTS_ONLY = True                           # Load weights of pre-trained model or complete Model_Wrapper instance
+    LOAD_WEIGHTS_ONLY = False                           # Load weights of pre-trained model or complete Model_Wrapper instance
     # Layers' mapping from old to new model if LOAD_WEIGHTS_ONLY
     #   You can check the layers of a model with [layer.name for layer in model_wrapper.model.layers]
     if '-video' in DATASET_NAME:
@@ -335,8 +335,9 @@ def load_parameters():
     REBUILD_DATASET = True                             # Build again or use stored instance
     MODE = 'training'                                  # 'training' or 'sampling' (if 'sampling' then RELOAD must
                                                        # be greater than 0 and EVAL_ON_SETS will be used)
+    RELOAD_PATH = None
     SAMPLING_RELOAD_EPOCH = False
-    SAMPLING_RELOAD_POINT = 300
+    SAMPLING_RELOAD_POINT = 0
     # Extra parameters for special trainings
     TRAIN_ON_TRAINVAL = False  # train the model on both training and validation sets combined
     FORCE_RELOAD_VOCABULARY = False  # force building a new vocabulary from the training samples applicable if RELOAD > 1
