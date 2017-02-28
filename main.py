@@ -5,7 +5,7 @@ from config import load_parameters
 from data_engine.prepare_data import build_dataset
 from viddesc_model import VideoDesc_Model
 
-from keras_wrapper.cnn_model import loadModel, saveModel, transferWeights
+from keras_wrapper.cnn_model import loadModel, saveModel, transferWeights, updateModel
 from keras_wrapper.extra.callbacks import EvalPerformance, Sample
 from keras_wrapper.extra.read_write import dict2pkl, list2file
 from keras_wrapper.extra.evaluation import selectMetric
@@ -39,15 +39,19 @@ def train_model(params):
 
 
     ########### Build model
-    if params['RELOAD'] == 0 or params['LOAD_WEIGHTS_ONLY']: # build new model
+
+    if params['MODE'] == 'finetuning':
+        #video_model = loadModel(params['PRE_TRAINED_MODEL_STORE_PATHS'], params['RELOAD'])
         video_model = VideoDesc_Model(params,
-                                      type=params['MODEL_TYPE'],
-                                      verbose=params['VERBOSE'],
-                                      model_name=params['MODEL_NAME'],
-                                      vocabularies=dataset.vocabulary,
-                                      store_path=params['STORE_PATH'],
-                                      set_optimizer=True)
-        dict2pkl(params, params['STORE_PATH'] + '/config')
+                                            type=params['MODEL_TYPE'],
+                                            verbose=params['VERBOSE'],
+                                            model_name=params['MODEL_NAME'] + '_reloaded',
+                                            vocabularies=dataset.vocabulary,
+                                            store_path=params['STORE_PATH'],
+                                            set_optimizer=False,
+                                            clear_dirs=False)
+        video_model = updateModel(video_model, params['RELOAD_PATH'], params['RELOAD'], reload_epoch=False)
+        video_model.setParams(params)
 
         # Define the inputs and outputs mapping from our Dataset instance to our model
         inputMapping = dict()
@@ -57,7 +61,7 @@ def train_model(params):
                 id_dest = video_model.ids_inputs[i]
                 inputMapping[id_dest] = pos_source
         video_model.setInputsMapping(inputMapping)
-            
+
         outputMapping = dict()
         for i, id_out in enumerate(params['OUTPUTS_IDS_DATASET']):
             if len(video_model.ids_outputs) > i:
@@ -66,21 +70,53 @@ def train_model(params):
                 outputMapping[id_dest] = pos_target
         video_model.setOutputsMapping(outputMapping)
 
-        # Only load weights from pre-trained model
-        if params['LOAD_WEIGHTS_ONLY'] and params['RELOAD'] > 0:
-            for i in range(0, len(params['RELOAD'])):
-                old_model = loadModel(params['PRE_TRAINED_MODEL_STORE_PATHS'][i], params['RELOAD'][i])
-                video_model = transferWeights(old_model, video_model, params['LAYERS_MAPPING'][i])
-            video_model.setOptimizer()
-            params['RELOAD'] = 0
-
-    else: # resume from previously trained model
-        video_model = loadModel(params['PRE_TRAINED_MODEL_STORE_PATHS'], params['RELOAD'])
-        video_model.params['LR'] = params['LR']
         video_model.setOptimizer()
+        params['MAX_EPOCH'] += params['RELOAD']
 
-        if video_model.model_path != params['STORE_PATH']:
-            video_model.setName(params['MODEL_NAME'], models_path=params['STORE_PATH'], clear_dirs=False)
+    else:
+
+        if params['RELOAD'] == 0 or params['LOAD_WEIGHTS_ONLY']: # build new model
+            video_model = VideoDesc_Model(params,
+                                          type=params['MODEL_TYPE'],
+                                          verbose=params['VERBOSE'],
+                                          model_name=params['MODEL_NAME'],
+                                          vocabularies=dataset.vocabulary,
+                                          store_path=params['STORE_PATH'],
+                                          set_optimizer=True)
+            dict2pkl(params, params['STORE_PATH'] + '/config')
+
+            # Define the inputs and outputs mapping from our Dataset instance to our model
+            inputMapping = dict()
+            for i, id_in in enumerate(params['INPUTS_IDS_DATASET']):
+                if len(video_model.ids_inputs) > i:
+                    pos_source = dataset.ids_inputs.index(id_in)
+                    id_dest = video_model.ids_inputs[i]
+                    inputMapping[id_dest] = pos_source
+            video_model.setInputsMapping(inputMapping)
+
+            outputMapping = dict()
+            for i, id_out in enumerate(params['OUTPUTS_IDS_DATASET']):
+                if len(video_model.ids_outputs) > i:
+                    pos_target = dataset.ids_outputs.index(id_out)
+                    id_dest = video_model.ids_outputs[i]
+                    outputMapping[id_dest] = pos_target
+            video_model.setOutputsMapping(outputMapping)
+
+            # Only load weights from pre-trained model
+            if params['LOAD_WEIGHTS_ONLY'] and params['RELOAD'] > 0:
+                for i in range(0, len(params['RELOAD'])):
+                    old_model = loadModel(params['PRE_TRAINED_MODEL_STORE_PATHS'][i], params['RELOAD'][i])
+                    video_model = transferWeights(old_model, video_model, params['LAYERS_MAPPING'][i])
+                video_model.setOptimizer()
+                params['RELOAD'] = 0
+
+        else: # resume from previously trained model
+            video_model = loadModel(params['PRE_TRAINED_MODEL_STORE_PATHS'], params['RELOAD'])
+            video_model.params['LR'] = params['LR']
+            video_model.setOptimizer()
+
+            if video_model.model_path != params['STORE_PATH']:
+                video_model.setName(params['MODEL_NAME'], models_path=params['STORE_PATH'], clear_dirs=False)
     ###########
 
 
@@ -364,7 +400,7 @@ if __name__ == "__main__":
         print 'Overwritten arguments must have the form key=Value'
         exit(1)
     check_params(parameters)
-    if parameters['MODE'] == 'training':
+    if parameters['MODE'] == 'training' or parameters['MODE'] == 'finetuning':
         logging.info('Running training.')
         train_model(parameters)
     elif parameters['MODE'] == 'sampling':
