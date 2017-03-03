@@ -1207,7 +1207,7 @@ class VideoDesc_Model(Model_Wrapper):
 
         if params['ENCODER_HIDDEN_SIZE'] > 0:
             if params['BIDIRECTIONAL_ENCODER']:
-                encoder = Bidirectional(eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
+                encoded_video = Bidirectional(eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
                                                                  W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
                                                                  U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
                                                                  b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
@@ -1219,7 +1219,7 @@ class VideoDesc_Model(Model_Wrapper):
                                         name='bidirectional_encoder_' + params['RNN_TYPE'],
                                         merge_mode='concat')(input_video)
             else:
-                encoder = eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
+                encoded_video = eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
                                                    W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
                                                    U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
                                                    b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
@@ -1229,13 +1229,12 @@ class VideoDesc_Model(Model_Wrapper):
                                                        'USE_RECURRENT_DROPOUT'] else None,
                                                    return_sequences=True,
                                                    name='encoder_' + params['RNN_TYPE'])(input_video)
-            input_video = merge([input_video, encoder], mode='concat', concat_axis=2)
-            input_video = Regularize(input_video, params, name='input_video')
+            encoded_video = Regularize(encoded_video, params, name='input_video')
 
             # 2.3. Potentially deep encoder
             for n_layer in range(1, params['N_LAYERS_ENCODER']):
                 if params['BIDIRECTIONAL_DEEP_ENCODER']:
-                    current_input_video = Bidirectional(eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
+                    current_encoded_video = Bidirectional(eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
                                                                                  W_regularizer=l2(
                                                                                      params['RECURRENT_WEIGHT_DECAY']),
                                                                                  U_regularizer=l2(
@@ -1251,9 +1250,9 @@ class VideoDesc_Model(Model_Wrapper):
                                                                                  return_sequences=True,
                                                                                  ),
                                                         merge_mode='concat',
-                                                        name='bidirectional_encoder_' + str(n_layer))(input_video)
+                                                        name='bidirectional_encoder_' + str(n_layer))(encoded_video)
                 else:
-                    current_input_video = eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
+                    current_encoded_video = eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
                                                                    W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
                                                                    U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
                                                                    b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
@@ -1262,10 +1261,12 @@ class VideoDesc_Model(Model_Wrapper):
                                                                    dropout_U=params['RECURRENT_DROPOUT_P'] if params[
                                                                        'USE_RECURRENT_DROPOUT'] else None,
                                                                    return_sequences=True,
-                                                                   name='encoder_' + str(n_layer))(input_video)
+                                                                   name='encoder_' + str(n_layer))(encoded_video)
 
-                current_input_video = Regularize(current_input_video, params, name='input_video_' + str(n_layer))
-                input_video = merge([input_video, current_input_video], mode='sum')
+                current_encoded_video = Regularize(current_encoded_video, params, name='input_video_' + str(n_layer))
+                encoded_video = merge([encoded_video, current_encoded_video], mode='sum')
+
+            input_video = merge([input_video, encoded_video], mode='concat', concat_axis=2)
 
         # Previously generated words as inputs for training
         next_words = Input(name=self.ids_inputs[1], batch_shape=tuple([None, None]), dtype='int32')

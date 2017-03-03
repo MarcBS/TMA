@@ -74,7 +74,6 @@ def train_model(params):
         params['MAX_EPOCH'] += params['RELOAD']
 
     else:
-
         if params['RELOAD'] == 0 or params['LOAD_WEIGHTS_ONLY']: # build new model
             video_model = VideoDesc_Model(params,
                                           type=params['MODEL_TYPE'],
@@ -109,7 +108,6 @@ def train_model(params):
                     video_model = transferWeights(old_model, video_model, params['LAYERS_MAPPING'][i])
                 video_model.setOptimizer()
                 params['RELOAD'] = 0
-
         else: # resume from previously trained model
             video_model = loadModel(params['PRE_TRAINED_MODEL_STORE_PATHS'], params['RELOAD'])
             video_model.params['LR'] = params['LR']
