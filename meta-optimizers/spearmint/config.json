@@ -2,19 +2,19 @@
     "language"        : "PYTHON",
     "main-file"       : "spearmint_opt.py",
     "experiment-name" : "TemporallyLinkedVideoDescriptionAtt",
-    "likelihood"      : "NOISELESS",
+    "likelihood"      : "GAUSSIAN",
     "variables" : {
         "TARGET_TEXT_EMBEDDING_SIZE" : {
             "type" : "INT",
             "size" : 1,
             "min"  : 50,
-            "max"  : 1000
+            "max"  : 600
         },
         "ENCODER_HIDDEN_SIZE" : {
             "type" : "INT",
             "size" : 1,
             "min"  : 100,
-            "max"  : 2000
+            "max"  : 500
         },
         "LR_GAMMA" : {
             "type" : "FLOAT",
@@ -37,14 +37,14 @@
         "DECODER_HIDDEN_SIZE" : {
             "type" : "INT",
             "size" : 1,
-            "min"  : 50,
-            "max"  : 1000
+            "min"  : 100,
+            "max"  : 600
         },
         "PREV_SENT_ENCODER_HIDDEN_SIZE" : {
             "type" : "INT",
             "size" : 1,
-            "min"  : 50,
-            "max"  : 2000
+            "min"  : 100,
+            "max"  : 500
         }
     }
 }

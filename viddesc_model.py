@@ -1,14 +1,9 @@
 from keras.engine import Input
-from keras.engine.topology import merge
-from keras.layers import TimeDistributed, Bidirectional
-from keras.layers.embeddings import Embedding
-from keras.layers.recurrent import GRU, GRUCond, AttGRUCond, LSTM, LSTMCond, AttLSTMCond, AttLSTMCond2Inputs
-from keras.layers.core import Dense, Activation, Lambda, MaxoutDense, MaskedMean, PermuteGeneral, MaskLayer, WeightedMerge
+from keras.layers import *
 from keras.models import model_from_json, Model
 from keras.optimizers import Adam, RMSprop, Nadam, Adadelta, SGD
 from keras.regularizers import l2
 from keras import backend as K
-from keras.engine import Merge
 
 from keras_wrapper.cnn_model import Model_Wrapper
 from keras_wrapper.extra.regularize import Regularize
@@ -29,8 +24,8 @@ class VideoDesc_Model(Model_Wrapper):
     def __init__(self, params, type='VideoDesc_Model', verbose=1, structure_path=None, weights_path=None,
                  model_name=None, vocabularies=None, store_path=None, set_optimizer=True, clear_dirs=True):
         """
-            VideoDesc_Model object constructor. 
-            
+            VideoDesc_Model object constructor.
+
             :param params: all hyperparameters of the model.
             :param type: network name type (corresponds to any method defined in the section 'MODELS' of this class). Only valid if 'structure_path' == None.
             :param verbose: set to 0 if you don't want the model to output informative messages
@@ -92,7 +87,7 @@ class VideoDesc_Model(Model_Wrapper):
                 eval('self.' + type + '(params)')
             else:
                 raise Exception('Video_Captioning_Model type "'+ type +'" is not implemented.')
-        
+
         # Load weights from file
         if weights_path:
             if self.verbose > 0:
