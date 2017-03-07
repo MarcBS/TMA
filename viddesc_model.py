@@ -1622,8 +1622,8 @@ class VideoDesc_Model(Model_Wrapper):
                 + Context
                 + Last word
                 + LSTM's hidden state
-                + Previous output1
-                + Previous output2
+                + Previous output1 (text)
+                + Previous output2 (video)
 
             * LSTM on output of previous sequence/video
             * Attention mechanism on words of previous output
@@ -1632,8 +1632,8 @@ class VideoDesc_Model(Model_Wrapper):
         :return:
         """
         # Prepare variables for temporally linked samples
-        self.ids_temporally_linked_inputs = [self.ids_inputs[-1]]
-        self.matchings_sample_to_next_sample = {self.ids_outputs[0]: self.ids_inputs[-1]}
+        self.ids_temporally_linked_inputs = [self.ids_inputs[2]]
+        self.matchings_sample_to_next_sample = {self.ids_outputs[0]: self.ids_inputs[2]}
 
         # Video model
         # video = Input(name=self.ids_inputs[0], shape=tuple([params['NUM_FRAMES'], params['IMG_FEAT_SIZE']]))
@@ -1721,15 +1721,11 @@ class VideoDesc_Model(Model_Wrapper):
         emb = shared_emb(next_words)
         emb = Regularize(emb, params, name='target_word_embedding')
 
-        if '-video' in params['DATASET_NAME']:
-            # Video from the previous event
-            prev_desc = Input(name=self.ids_inputs[2], shape=tuple([None, params['IMG_FEAT_SIZE']]))
-            prev_desc_emb = prev_desc
-        else:
-            # Previously generated description from temporally-linked sample
-            prev_desc = Input(name=self.ids_inputs[2], batch_shape=tuple([None, None]), dtype='int32')
-            # previous description and previously generated words share the same embedding
-            prev_desc_emb = shared_emb(prev_desc)
+
+        # Previously generated description from temporally-linked sample
+        prev_desc = Input(name=self.ids_inputs[2], batch_shape=tuple([None, None]), dtype='int32')
+        # previous description and previously generated words share the same embedding
+        prev_desc_emb = shared_emb(prev_desc)
 
         # LSTM for encoding the previous description
         if params['PREV_SENT_ENCODER_HIDDEN_SIZE'] > 0:
@@ -1801,6 +1797,80 @@ class VideoDesc_Model(Model_Wrapper):
                 current_prev_desc_enc = Regularize(current_prev_desc_enc, params, name='prev_desc_enc_' + str(n_layer))
                 prev_desc_enc = merge([prev_desc_enc, current_prev_desc_enc], mode='sum')
 
+
+        # Video from the previous event
+        prev_vid = Input(name=self.ids_inputs[3], shape=tuple([None, params['IMG_FEAT_SIZE']]))
+        prev_vid_emb = prev_vid
+
+        # LSTM for encoding the previous description
+        if params['PREV_SENT_ENCODER_HIDDEN_SIZE'] > 0:
+            if params['BIDIRECTIONAL_PREV_SENT_ENCODER']:
+                prev_vid_enc = Bidirectional(eval(params['RNN_TYPE'])(params['PREV_SENT_ENCODER_HIDDEN_SIZE'],
+                                                                       W_regularizer=l2(
+                                                                           params['RECURRENT_WEIGHT_DECAY']),
+                                                                       U_regularizer=l2(
+                                                                           params['RECURRENT_WEIGHT_DECAY']),
+                                                                       b_regularizer=l2(
+                                                                           params['RECURRENT_WEIGHT_DECAY']),
+                                                                       dropout_W=params['RECURRENT_DROPOUT_P'] if
+                                                                       params[
+                                                                           'USE_RECURRENT_DROPOUT'] else None,
+                                                                       dropout_U=params['RECURRENT_DROPOUT_P'] if
+                                                                       params[
+                                                                           'USE_RECURRENT_DROPOUT'] else None,
+                                                                       return_sequences=True),
+                                              name='prev_vid_emb_bidirectional_encoder_' + params['RNN_TYPE'],
+                                              merge_mode='concat')(prev_vid_emb)
+            else:
+                prev_vid_enc = eval(params['RNN_TYPE'])(params['PREV_SENT_ENCODER_HIDDEN_SIZE'],
+                                                         W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                         U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                         b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                         dropout_W=params['RECURRENT_DROPOUT_P'] if params[
+                                                             'USE_RECURRENT_DROPOUT'] else None,
+                                                         dropout_U=params['RECURRENT_DROPOUT_P'] if params[
+                                                             'USE_RECURRENT_DROPOUT'] else None,
+                                                         return_sequences=True,
+                                                         name='prev_vid_emb_encoder_' + params['RNN_TYPE'])(prev_vid_emb)
+            prev_vid_enc = Regularize(prev_vid_enc, params, name='prev_vid_enc')
+
+            # 2.3. Potentially deep encoder
+            for n_layer in range(1, params['N_LAYERS_PREV_SENT_ENCODER']):
+                if params['BIDIRECTIONAL_DEEP_PREV_SENT_ENCODER']:
+                    current_prev_vid_enc = Bidirectional(
+                        eval(params['RNN_TYPE'])(params['PREV_SENT_ENCODER_HIDDEN_SIZE'],
+                                                 W_regularizer=l2(
+                                                     params['RECURRENT_WEIGHT_DECAY']),
+                                                 U_regularizer=l2(
+                                                     params['RECURRENT_WEIGHT_DECAY']),
+                                                 b_regularizer=l2(
+                                                     params['RECURRENT_WEIGHT_DECAY']),
+                                                 dropout_W=params[
+                                                     'RECURRENT_DROPOUT_P'] if params[
+                                                     'USE_RECURRENT_DROPOUT'] else None,
+                                                 dropout_U=params[
+                                                     'RECURRENT_DROPOUT_P'] if params[
+                                                     'USE_RECURRENT_DROPOUT'] else None,
+                                                 return_sequences=True,
+                                                 ),
+                        merge_mode='concat',
+                        name='prev_vid_emb_bidirectional_encoder_' + str(n_layer))(prev_vid_emb)
+                else:
+                    current_prev_vid_enc = eval(params['RNN_TYPE'])(params['PREV_SENT_ENCODER_HIDDEN_SIZE'],
+                                                                     W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                     U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                     b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                     dropout_W=params['RECURRENT_DROPOUT_P'] if params[
+                                                                         'USE_RECURRENT_DROPOUT'] else None,
+                                                                     dropout_U=params['RECURRENT_DROPOUT_P'] if params[
+                                                                         'USE_RECURRENT_DROPOUT'] else None,
+                                                                     return_sequences=True,
+                                                                     name='prev_vid_emb_encoder_' + str(n_layer))(prev_vid_emb)
+
+                current_prev_vid_enc = Regularize(current_prev_vid_enc, params, name='prev_vid_enc_' + str(n_layer))
+                prev_vid_enc = merge([prev_vid_enc, current_prev_vid_enc], mode='sum')
+
+
         # LSTM initialization perceptrons with ctx mean
         # 3.2. Decoder's RNN initialization perceptrons with ctx mean
         ctx_mean = Lambda(lambda x: K.mean(x, axis=1),
@@ -1819,7 +1889,7 @@ class VideoDesc_Model(Model_Wrapper):
                                   activation=params['INIT_LAYERS'][-1]
                                   )(ctx_mean)
             initial_state = Regularize(initial_state, params, name='initial_state')
-            input_attentional_decoder = [emb, input_video, prev_desc_enc, initial_state]
+            input_attentional_decoder = [emb, input_video, prev_desc_enc, prev_vid_enc, initial_state]
 
             if params['RNN_TYPE'] == 'LSTM':
                 initial_memory = Dense(params['DECODER_HIDDEN_SIZE'], name='initial_memory',
@@ -1828,14 +1898,14 @@ class VideoDesc_Model(Model_Wrapper):
                 initial_memory = Regularize(initial_memory, params, name='initial_memory')
                 input_attentional_decoder.append(initial_memory)
         else:
-            input_attentional_decoder = [emb, input_video, prev_desc_enc]
+            input_attentional_decoder = [emb, input_video, prev_desc_enc, prev_vid_enc]
 
         ##################################################################
         #                       DECODER
         ##################################################################
 
         # 3.3. Attentional decoder
-        sharedAttRNNCond = eval('Att' + params['RNN_TYPE'] + 'Cond2Inputs')(params['DECODER_HIDDEN_SIZE'],
+        sharedAttRNNCond = eval('Att' + params['RNN_TYPE'] + 'Cond3Inputs')(params['DECODER_HIDDEN_SIZE'],
                                                                             W_regularizer=l2(
                                                                                 params['RECURRENT_WEIGHT_DECAY']),
                                                                             U_regularizer=l2(
@@ -1880,9 +1950,11 @@ class VideoDesc_Model(Model_Wrapper):
         alphas = rnn_output[2]
         prev_desc_att = rnn_output[3]
         prev_desc_alphas = rnn_output[4]
-        h_state = rnn_output[5]
+        prev_vid_att = rnn_output[5]
+        prev_vid_alphas = rnn_output[6]
+        h_state = rnn_output[7]
         if params['RNN_TYPE'] == 'LSTM':
-            h_memory = rnn_output[6]
+            h_memory = rnn_output[8]
 
         [proj_h, shared_reg_proj_h] = Regularize(proj_h, params, shared_layers=True, name='proj_h0')
 
@@ -1913,6 +1985,13 @@ class VideoDesc_Model(Model_Wrapper):
         out_layer_prev = shared_FC_prev(prev_desc_att)
         out_layer_prev = shared_Lambda_Permute(out_layer_prev)
 
+        shared_FC_prev_vid = TimeDistributed(Dense(params['TARGET_TEXT_EMBEDDING_SIZE'],
+                                               W_regularizer=l2(params['WEIGHT_DECAY']),
+                                               activation='linear'),
+                                         name='logit_prev_vid')
+        out_layer_prev_vid = shared_FC_prev_vid(prev_vid_att)
+        out_layer_prev_vid = shared_Lambda_Permute(out_layer_prev_vid)
+
         ### Regularization of FC outputs
         [out_layer_mlp, shared_reg_out_layer_mlp] = Regularize(out_layer_mlp, params,
                                                                shared_layers=True, name='out_layer_mlp')
@@ -1922,15 +2001,17 @@ class VideoDesc_Model(Model_Wrapper):
                                                                shared_layers=True, name='out_layer_emb')
         [out_layer_prev, shared_reg_out_layer_prev] = Regularize(out_layer_prev, params,
                                                                  shared_layers=True, name='out_layer_prev')
+        [out_layer_prev_vid, shared_reg_out_layer_prev_vid] = Regularize(out_layer_prev_vid, params,
+                                                                 shared_layers=True, name='out_layer_prev_vid')
 
         ### Merge of FC outputs
         if params['WEIGHTED_MERGE']:
             shared_merge = WeightedMerge(mode=params['ADDITIONAL_OUTPUT_MERGE_MODE'],
                                          lambdas_regularizer=l2(params['WEIGHT_DECAY']),
                                          name='additional_input')
-            additional_output = shared_merge([out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev])
+            additional_output = shared_merge([out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev, out_layer_prev_vid])
         else:
-            additional_output = merge([out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev],
+            additional_output = merge([out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev, out_layer_prev_vid],
                                       mode=params['ADDITIONAL_OUTPUT_MERGE_MODE'], name='additional_input')
 
         # tanh activation
@@ -1964,7 +2045,7 @@ class VideoDesc_Model(Model_Wrapper):
                                          name=self.ids_outputs[0])
         softout = shared_FC_soft(out_layer)
 
-        self.model = Model(input=[video, next_words, prev_desc], output=softout)
+        self.model = Model(input=[video, next_words, prev_desc, prev_vid], output=softout)
 
         ##################################################################
         #               BEAM SEARCH OPTIMIZED MODEL                      #
@@ -1975,8 +2056,8 @@ class VideoDesc_Model(Model_Wrapper):
         if params['BEAM_SEARCH'] and params['OPTIMIZED_SEARCH']:
             # First, we need a model that outputs both preprocessed inputs + initial h state
             # for applying the initial forward pass
-            model_init_input = [video, next_words, prev_desc]
-            model_init_output = [softout, input_video, prev_desc_enc, h_state]
+            model_init_input = [video, next_words, prev_desc, prev_vid]
+            model_init_output = [softout, input_video, prev_desc_enc, prev_vid_enc, h_state]
             if params['RNN_TYPE'] == 'LSTM':
                 model_init_output.append(h_memory)
 
@@ -1985,7 +2066,7 @@ class VideoDesc_Model(Model_Wrapper):
             # Store inputs and outputs names for model_init
             self.ids_inputs_init = self.ids_inputs
             # first output must be the output probs.
-            self.ids_outputs_init = self.ids_outputs + ['preprocessed_input', 'preprocessed_input2', 'next_state']
+            self.ids_outputs_init = self.ids_outputs + ['preprocessed_input', 'preprocessed_input2', 'preprocessed_input3', 'next_state']
             if params['RNN_TYPE'] == 'LSTM':
                 self.ids_outputs_init.append('next_memory')
 
@@ -2009,16 +2090,20 @@ class VideoDesc_Model(Model_Wrapper):
             if params['PREV_SENT_ENCODER_HIDDEN_SIZE'] > 0:
                 if params['BIDIRECTIONAL_PREV_SENT_ENCODER']:
                     preprocessed_size_prev_desc = params['PREV_SENT_ENCODER_HIDDEN_SIZE'] * 2
+                    preprocessed_size_prev_vid = params['PREV_SENT_ENCODER_HIDDEN_SIZE'] * 2
                 else:
                     preprocessed_size_prev_desc = params['PREV_SENT_ENCODER_HIDDEN_SIZE']
+                    preprocessed_size_prev_vid = params['PREV_SENT_ENCODER_HIDDEN_SIZE']
 
             # Define inputs
             preprocessed_annotations = Input(name='preprocessed_input',
                                              shape=tuple([None, preprocessed_size]))
             preprocessed_prev_description = Input(name='preprocessed_input2',
                                                   shape=tuple([None, preprocessed_size_prev_desc]))
+            preprocessed_prev_video = Input(name='preprocessed_input3',
+                                                  shape=tuple([None, preprocessed_size_prev_vid]))
             prev_h_state = Input(name='prev_state', shape=tuple([params['DECODER_HIDDEN_SIZE']]))
-            input_attentional_decoder = [emb, preprocessed_annotations, preprocessed_prev_description, prev_h_state]
+            input_attentional_decoder = [emb, preprocessed_annotations, preprocessed_prev_description, preprocessed_prev_video, prev_h_state]
 
             if params['RNN_TYPE'] == 'LSTM':
                 prev_h_memory = Input(name='prev_memory', shape=tuple([params['DECODER_HIDDEN_SIZE']]))
@@ -2030,9 +2115,11 @@ class VideoDesc_Model(Model_Wrapper):
             alphas = rnn_output[2]
             prev_desc_att = rnn_output[3]
             prev_desc_alphas = rnn_output[4]
-            h_state = rnn_output[5]
+            prev_vid_att = rnn_output[5]
+            prev_vid_alphas = rnn_output[6]
+            h_state = rnn_output[7]
             if params['RNN_TYPE'] == 'LSTM':
-                h_memory = rnn_output[6]
+                h_memory = rnn_output[8]
             for reg in shared_reg_proj_h:
                 proj_h = reg(proj_h)
 
@@ -2042,21 +2129,26 @@ class VideoDesc_Model(Model_Wrapper):
             out_layer_emb = shared_FC_emb(emb)
             out_layer_prev = shared_FC_prev(prev_desc_att)
             out_layer_prev = shared_Lambda_Permute(out_layer_prev)
+            out_layer_prev_vid = shared_FC_prev_vid(prev_vid_att)
+            out_layer_prev_vid = shared_Lambda_Permute(out_layer_prev_vid)
 
             for (reg_out_layer_mlp, reg_out_layer_ctx,
-                 reg_out_layer_emb, reg_out_layer_prev) in zip(shared_reg_out_layer_mlp,
+                 reg_out_layer_emb, reg_out_layer_prev,
+                 reg_out_layer_prev_vid)                 in zip(shared_reg_out_layer_mlp,
                                                                shared_reg_out_layer_ctx,
                                                                shared_reg_out_layer_emb,
-                                                               shared_reg_out_layer_prev):
+                                                               shared_reg_out_layer_prev,
+                                                               shared_reg_out_layer_prev_vid):
                 out_layer_mlp = reg_out_layer_mlp(out_layer_mlp)
                 out_layer_ctx = reg_out_layer_ctx(out_layer_ctx)
                 out_layer_emb = reg_out_layer_emb(out_layer_emb)
                 out_layer_prev = reg_out_layer_prev(out_layer_prev)
+                out_layer_prev_vid = reg_out_layer_prev_vid(out_layer_prev_vid)
 
             if params['WEIGHTED_MERGE']:
-                additional_output = shared_merge([out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev])
+                additional_output = shared_merge([out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev, out_layer_prev_vid])
             else:
-                additional_output = merge([out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev],
+                additional_output = merge([out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev, out_layer_prev_vid],
                                           mode=params['ADDITIONAL_OUTPUT_MERGE_MODE'],
                                           name='additional_input_model_next')
             out_layer = shared_activation_tanh(additional_output)
@@ -2068,8 +2160,8 @@ class VideoDesc_Model(Model_Wrapper):
 
             # Softmax
             softout = shared_FC_soft(out_layer)
-            model_next_inputs = [next_words, preprocessed_annotations, preprocessed_prev_description, prev_h_state]
-            model_next_outputs = [softout, preprocessed_annotations, preprocessed_prev_description, h_state]
+            model_next_inputs = [next_words, preprocessed_annotations, preprocessed_prev_description, preprocessed_prev_video, prev_h_state]
+            model_next_outputs = [softout, preprocessed_annotations, preprocessed_prev_description, preprocessed_prev_video, h_state]
             if params['RNN_TYPE'] == 'LSTM':
                 model_next_inputs.append(prev_h_memory)
                 model_next_outputs.append(h_memory)
@@ -2078,16 +2170,18 @@ class VideoDesc_Model(Model_Wrapper):
 
             # Store inputs and outputs names for model_next
             # first input must be previous word
-            self.ids_inputs_next = [self.ids_inputs[1]] + ['preprocessed_input', 'preprocessed_input2', 'prev_state']
+            self.ids_inputs_next = [self.ids_inputs[1]] + ['preprocessed_input', 'preprocessed_input2', 'preprocessed_input3', 'prev_state']
             # first output must be the output probs.
-            self.ids_outputs_next = self.ids_outputs + ['preprocessed_input', 'preprocessed_input2', 'next_state']
+            self.ids_outputs_next = self.ids_outputs + ['preprocessed_input', 'preprocessed_input2', 'preprocessed_input3', 'next_state']
 
             # Input -> Output matchings from model_init to model_next and from model_next to model_next
             self.matchings_init_to_next = {'preprocessed_input': 'preprocessed_input',
                                            'preprocessed_input2': 'preprocessed_input2',
+                                           'preprocessed_input3': 'preprocessed_input3',
                                            'next_state': 'prev_state'}
             self.matchings_next_to_next = {'preprocessed_input': 'preprocessed_input',
                                            'preprocessed_input2': 'preprocessed_input2',
+                                           'preprocessed_input3': 'preprocessed_input3',
                                            'next_state': 'prev_state'}
             if params['RNN_TYPE'] == 'LSTM':
                 self.ids_inputs_next.append('prev_memory')

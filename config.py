@@ -182,7 +182,7 @@ def load_parameters():
         STOP_METRIC = 'accuracy'
 
     # Model parameters
-    MODEL_TYPE = 'TemporallyLinkedVideoDescriptionAtt'       # 'ArcticVideoCaptionWithInit'
+    MODEL_TYPE = 'TemporallyLinkedVideoDescriptionAttDoublePrev'       # 'ArcticVideoCaptionWithInit'
                                                     # 'ArcticVideoCaptionNoLSTMEncWithInit'
                                                     # 'TemporallyLinkedVideoDescriptionNoAtt'
                                                     # 'TemporallyLinkedVideoDescriptionAtt'
