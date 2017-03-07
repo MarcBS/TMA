@@ -3,11 +3,11 @@ def load_parameters():
         Loads the defined parameters
     """
     # Input data params
-    DATA_ROOT_PATH = '/media/HDD_2TB/DATASETS/EDUB-SegDesc/'        # Root path to the data
-    #DATA_ROOT_PATH = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
+    #DATA_ROOT_PATH = '/media/HDD_2TB/DATASETS/EDUB-SegDesc/'        # Root path to the data
+    DATA_ROOT_PATH = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
 
     # preprocessed features
-    DATASET_NAME = 'EDUB-SegDesc_features'   # Dataset name (add '-linked' suffix for using
+    DATASET_NAME = 'EDUB-SegDesc_features-linked-vidtext'   # Dataset name (add '-linked' suffix for using
                                                     # dataset with temporally-linked training data)
                                                     #
                                                     #    -linked
@@ -16,6 +16,8 @@ def load_parameters():
                                                     #    -linked-upperbound-prev
                                                     #    -linked-upperbound-nocopy
                                                     #    -linked-video
+                                                    #    -linked-vidtext
+                                                    #    -vidtext-embed
                                                     #
 
     PRE_TRAINED_DATASET_NAME = None #'MSVD_features'      # Dataset name for reusing vocabulary of pre-trained model
@@ -23,7 +25,7 @@ def load_parameters():
     VOCABULARIES_MAPPING = {'description': 'description',
                             'state_below': 'description',
                             'prev_description': 'description'}
-    VOCABULARIES_MAPPING = {}
+
     PRE_TRAINED_VOCABULARY_NAME = None #'1BillionWords_vocabulary'      # Dataset name for reusing vocabulary of pre-trained model
     """
     VOCABULARIES_MAPPING = {'description': 'target_text',
@@ -80,6 +82,10 @@ def load_parameters():
 
         INPUTS_IDS_DATASET.append('prev_description')
         INPUTS_IDS_MODEL.append('prev_description')
+
+        if '-vidtext' in DATASET_NAME:
+            INPUTS_IDS_DATASET.append('prev_video')
+            INPUTS_IDS_MODEL.append('prev_video')
 
         if '-upperbound' not in DATASET_NAME and '-video' not in DATASET_NAME:
             INPUTS_IDS_DATASET.append('link_index')
@@ -159,10 +165,10 @@ def load_parameters():
     MAX_EPOCH = 200                                # Stop when computed this number of epochs
     BATCH_SIZE = 64                               # ABiViRNet trained with BATCH_SIZE = 64
 
-    HOMOGENEOUS_BATCHES = False                   # Use batches with homogeneous output lengths for every minibatch (Possibly buggy!)
-    PARALLEL_LOADERS = 8                          # Parallel data batch loaders
-    EPOCHS_FOR_SAVE = 1                           # Number of epochs between model saves
-    WRITE_VALID_SAMPLES = True                    # Write valid samples in file
+    HOMOGENEOUS_BATCHES = False                         # Use batches with homogeneous output lengths for every minibatch (Possibly buggy!)
+    PARALLEL_LOADERS = 8                                # Parallel data batch loaders
+    EPOCHS_FOR_SAVE = 1 if EVAL_EACH_EPOCHS else None   # Number of epochs between model saves (None for disabling epoch save)
+    WRITE_VALID_SAMPLES = True                          # Write valid samples in file
     SAVE_EACH_EVALUATION = True if not EVAL_EACH_EPOCHS else False   # Save each time we evaluate the model
 
     # Early stop parameters
@@ -176,10 +182,11 @@ def load_parameters():
         STOP_METRIC = 'accuracy'
 
     # Model parameters
-    MODEL_TYPE = 'ArcticVideoCaptionWithInit'       # 'ArcticVideoCaptionWithInit'
+    MODEL_TYPE = 'TemporallyLinkedVideoDescriptionAtt'       # 'ArcticVideoCaptionWithInit'
                                                     # 'ArcticVideoCaptionNoLSTMEncWithInit'
                                                     # 'TemporallyLinkedVideoDescriptionNoAtt'
                                                     # 'TemporallyLinkedVideoDescriptionAtt'
+                                                    # 'TemporallyLinkedVideoDescriptionAttDoublePrev'
                                                     # 'VideoTextEmbedding'
 
     RNN_TYPE = 'LSTM'                             # RNN unit type ('LSTM' and 'GRU' supported)
@@ -199,13 +206,13 @@ def load_parameters():
 
 
     # Previous sentence encoder
-    PREV_SENT_ENCODER_HIDDEN_SIZE = 484           # For models with previous sentence RNN encoder (484)
-    BIDIRECTIONAL_PREV_SENT_ENCODER = False        # Use bidirectional encoder
+    PREV_SENT_ENCODER_HIDDEN_SIZE = 717           # For models with previous sentence RNN encoder (484)
+    BIDIRECTIONAL_PREV_SENT_ENCODER = True        # Use bidirectional encoder
     N_LAYERS_PREV_SENT_ENCODER = 1                # Stack this number of encoding layers
     BIDIRECTIONAL_DEEP_PREV_SENT_ENCODER = True   # Use bidirectional encoder in all encoding layers
 
-    DECODER_HIDDEN_SIZE = 300                     # For models with LSTM decoder (ABiViRNet 484)
-    SKIP_VECTORS_HIDDEN_SIZE = 300
+    DECODER_HIDDEN_SIZE = 484                     # For models with LSTM decoder (ABiViRNet 484)
+    SKIP_VECTORS_HIDDEN_SIZE = 301
     ADDITIONAL_OUTPUT_MERGE_MODE = 'sum'          # Merge mode for the skip connections
     WEIGHTED_MERGE = False       # Wether we want to apply a conventional or a weighted merge
 
@@ -244,7 +251,7 @@ def load_parameters():
     USE_L2 = False                                # L2 normalization on the features
 
     # Results plot and models storing parameters
-    EXTRA_NAME = 'small_from_scratch_no_LSTM_enc_new_data'                    # This will be appended to the end of the model name
+    EXTRA_NAME = 'test'                    # This will be appended to the end of the model name
     MODEL_NAME = DATASET_NAME + '_' + MODEL_TYPE +\
                  '_txtemb_' + str(TARGET_TEXT_EMBEDDING_SIZE) + \
                  '_imgemb_' + '_'.join([layer[0] for layer in IMG_EMBEDDING_LAYERS]) + \
@@ -257,15 +264,19 @@ def load_parameters():
     MODEL_NAME += '_'+EXTRA_NAME
 
     # Name and location of the pre-trained model (only if RELOAD > 0)
-    PRE_TRAINED_MODELS = ['MSVD_best_model']  # default: MODEL_NAME
+    PRE_TRAINED_MODELS = MODEL_NAME
+            # default: MODEL_NAME
+            # ['EDUB-SegDesc_features-vidtext-embed_VideoTextEmbedding_txtemb_301_imgemb__lstmenc_717_lstm_484_additional_output_mode_sum_deepout__Adadelta_decay_None-0.95_vidtext_classification_BLSTM_text']
+            #['EDUB-SegDesc_features-vidtext-embed_VideoTextEmbedding_txtemb_301_imgemb__lstmenc_717_lstm_484_additional_output_mode_sum_deepout__Adadelta_decay_None-0.95_vidtext_classification']
             #['EDUB-SegDesc_features-vidtext-embed_VideoTextEmbedding_txtemb_301_imgemb__lstmenc_717_lstm_484_additional_output_mode_sum_deepout__Adam_decay_1-0.95vidtext_embed']
             #['MSVD_best_model']
             # #['MSVD_best_model', '1BillionWords']
     PRE_TRAINED_MODEL_STORE_PATHS = map(lambda x: 'trained_models/' + x  + '/', PRE_TRAINED_MODELS) if isinstance(PRE_TRAINED_MODELS, list) else 'trained_models/'+PRE_TRAINED_MODELS+'/'
-    LOAD_WEIGHTS_ONLY = False                           # Load weights of pre-trained model or complete Model_Wrapper instance
+    LOAD_WEIGHTS_ONLY = True                           # Load weights of pre-trained model or complete Model_Wrapper instance
     # Layers' mapping from old to new model if LOAD_WEIGHTS_ONLY
     #   You can check the layers of a model with [layer.name for layer in model_wrapper.model.layers]
     if '-video' in DATASET_NAME:
+        # Pre-train MSVD
         LAYERS_MAPPING = [{'bidirectional_encoder': 'bidirectional_encoder_LSTM',
                            'bidirectional_encoder': 'prev_desc_emb_bidirectional_encoder_LSTM',
                           'initial_state': 'initial_state',
@@ -277,6 +288,17 @@ def load_parameters():
                           'description': 'description'
                           }
                         ]
+        # Pre-train vidtext embedding
+        """
+        LAYERS_MAPPING = [{'bidirectional_encoder_LSTM': 'bidirectional_encoder_LSTM',
+                           'bidirectional_encoder_LSTM': 'prev_desc_emb_bidirectional_encoder_LSTM',
+                           'target_word_embedding': 'target_word_embedding',
+                           'logit_ctx': 'logit_ctx',
+                           'logit_prev': 'logit_prev',
+                           }
+                          ]
+        """
+
     elif '-vidtext-embed' in DATASET_NAME:
         LAYERS_MAPPING = [{'bidirectional_encoder': 'bidirectional_encoder_LSTM',
                            'bidirectional_encoder': 'prev_desc_emb_bidirectional_encoder_LSTM',
@@ -330,7 +352,7 @@ def load_parameters():
 
     SAMPLING_SAVE_MODE = 'list'                        # 'list' or 'vqa'
     VERBOSE = 1                                        # Vqerbosity level
-    RELOAD = 0# [2] #[17]   #  [2, 0]                    # If 0 start training from scratch, otherwise the model
+    RELOAD =  0 #[21] # [16] # [2] #[17]   #  [2, 0]                    # If 0 start training from scratch, otherwise the model
                                                        # Saved on epoch 'RELOAD' will be used
     REBUILD_DATASET = True                             # Build again or use stored instance
     MODE = 'training'                                  # 'training' or 'sampling' (if 'sampling' then RELOAD must

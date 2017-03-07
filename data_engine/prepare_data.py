@@ -139,14 +139,14 @@ def build_dataset(params):
         if not '-vidtext-embed' in params['DATASET_NAME'] and '-linked' in params['DATASET_NAME']:
             # Set input captions from previous event/video
             if '-upperbound' not in params['DATASET_NAME']:
-                if '-video' in params['DATASET_NAME']:
-                    ds, repeat_images = insertTemporallyLinkedCaptions(ds, params,
-                                                                       set_names=['train', 'val', 'test'],
-                                                                       video='-video' in params['DATASET_NAME'])
-                    num_captions_val = repeat_images['val']
-                    num_captions_test = repeat_images['test']
-                else:
-                    ds, repeat_images = insertTemporallyLinkedCaptions(ds, params)
+                if '-vidtext' in params['DATASET_NAME']: # use both previous video and previous description
+
+                    ds, repeat_images = insertTemporallyLinkedCaptionsVidText(ds, params,
+                                                                              vidtext_set_names={'video': ['train', 'val', 'test'],
+                                                                                                 'text': ['train']})
+                    del repeat_images['test']
+                    del repeat_images['val']
+                    # Insert empty prev_descriptions on val and test sets
                     ds.setInput([],
                                 'val',
                                 type='text',
@@ -157,7 +157,8 @@ def build_dataset(params):
                                 pad_on_batch=True,
                                 max_text_len=params['MAX_OUTPUT_TEXT_LEN'],
                                 min_occ=params['MIN_OCCURRENCES_VOCAB'],
-                                required=False)
+                                required=False,
+                                overwrite_split=True)
                     ds.setInput([],
                                 'test',
                                 type='text',
@@ -168,7 +169,42 @@ def build_dataset(params):
                                 pad_on_batch=True,
                                 max_text_len=params['MAX_OUTPUT_TEXT_LEN'],
                                 min_occ=params['MIN_OCCURRENCES_VOCAB'],
-                                required=False)
+                                required=False,
+                                overwrite_split=True)
+
+                elif '-video' in params['DATASET_NAME']:
+                    ds, repeat_images = insertTemporallyLinkedCaptions(ds, params,
+                                                                       set_names=['train', 'val', 'test'],
+                                                                       video=True)
+                    num_captions_val = repeat_images['val']
+                    num_captions_test = repeat_images['test']
+                else:
+                    ds, repeat_images = insertTemporallyLinkedCaptions(ds, params)
+                    # Insert empty prev_descriptions on val and test sets
+                    ds.setInput([],
+                                'val',
+                                type='text',
+                                id=params['INPUTS_IDS_DATASET'][2],
+                                build_vocabulary=params['OUTPUTS_IDS_DATASET'][0],
+                                tokenization=params['TOKENIZATION_METHOD'],
+                                fill=params['FILL'],
+                                pad_on_batch=True,
+                                max_text_len=params['MAX_OUTPUT_TEXT_LEN'],
+                                min_occ=params['MIN_OCCURRENCES_VOCAB'],
+                                required=False,
+                                overwrite_split=True)
+                    ds.setInput([],
+                                'test',
+                                type='text',
+                                id=params['INPUTS_IDS_DATASET'][2],
+                                build_vocabulary=params['OUTPUTS_IDS_DATASET'][0],
+                                tokenization=params['TOKENIZATION_METHOD'],
+                                fill=params['FILL'],
+                                pad_on_batch=True,
+                                max_text_len=params['MAX_OUTPUT_TEXT_LEN'],
+                                min_occ=params['MIN_OCCURRENCES_VOCAB'],
+                                required=False,
+                                overwrite_split=True)
             else:
                 ds, repeat_images = insertTemporallyLinkedCaptions(ds,
                                                                    params,
@@ -204,7 +240,7 @@ def build_dataset(params):
                 ds.setInput(base_path + '/' + file,
                             s,
                             type='id',
-                            id=params['INPUTS_IDS_DATASET'][3],
+                            id=params['INPUTS_IDS_DATASET'][-1],
                             repeat_set=rep)
 
         # We have finished loading the dataset, now we can store it for using it in the future
@@ -215,11 +251,13 @@ def build_dataset(params):
 
     # Load vocabulary-related parameters of dataset used for pre-training
     if params['PRE_TRAINED_DATASET_NAME'] is not None:
+        logging.info('Re-using previous dataset vocabulary '+params['PRE_TRAINED_DATASET_NAME'])
         dataset_pretrained = loadDataset(params['DATASET_STORE_PATH'] + 'Dataset_' + params['PRE_TRAINED_DATASET_NAME'] + '.pkl')
         for id_new, id_old in params['VOCABULARIES_MAPPING'].iteritems():
             ds.vocabulary[id_new] = copy.deepcopy(dataset_pretrained.vocabulary[id_old])
             ds.vocabulary_len[id_new] = copy.deepcopy(dataset_pretrained.vocabulary_len[id_old])
     elif params['PRE_TRAINED_VOCABULARY_NAME'] is not None:
+        logging.info('Re-using previous vocabulary ' + params['PRE_TRAINED_VOCABULARY_NAME'])
         dataset_pretrained_vocabulary = pkl2dict(params['DATASET_STORE_PATH'] + params['PRE_TRAINED_VOCABULARY_NAME'] + '.pkl')
         for id_new, id_old in params['VOCABULARIES_MAPPING'].iteritems():
             ds.vocabulary[id_new] = copy.deepcopy(dataset_pretrained_vocabulary[id_old])
@@ -403,16 +441,12 @@ def insertTemporallyLinkedCaptions(ds, params, set_names=['train'],
                         for out in these_outputs:
                             final_outputs.append(out)
                         for ifeat, feat_type in enumerate(params['FEATURE_NAMES']):
-                            #final_inputs[feat_type][0].append('')
-                            #final_inputs[feat_type][1].append(0)
                             final_inputs[feat_type][1] += [0]
                     else:
                         images_repeat.append(num_cap[i])
                         for out in these_outputs:
                             final_outputs.append(out)
                         for ifeat, feat_type in enumerate(params['FEATURE_NAMES']):
-                            #final_inputs[feat_type][0].append(prev_videos[ifeat][0][link])
-                            #final_inputs[feat_type][1].append(prev_videos[ifeat][1][link])
                             if link > 0:
                                 init_frame = int(sum(prev_videos[ifeat][1][:link]))
                             else:
@@ -508,6 +542,204 @@ def insertTemporallyLinkedCaptions(ds, params, set_names=['train'],
 
         if upperbound:
             images_repeat = upperbound_images_repeat
+        repeat_images[s] = images_repeat
+
+    return ds, repeat_images
+
+
+def insertTemporallyLinkedCaptionsVidText(ds, params, vidtext_set_names={'video': ['train'], 'text': ['train']}):
+    """
+        Inserts two additional input consisting of the videos and captions from the previous segment/event
+        in chronological order. Example:
+            <video1, prev_video1, in_caption1> : <out_caption1>
+            <video1, prev_video1, in_caption1> : <out_caption2>
+            .
+            .
+            .
+            <video1, prev_video1, in_captionM> : <out_captionN>
+            <video2, prev_video2, in_caption1> : <out_caption1>
+            .
+            .
+            .
+
+        :param ds: dataset to modify
+        :param params: parameters from config
+        :param vidtext_set_names: dictionary names of the splits that will be modified for 'video' and for 'text'
+
+        :return: dataset modified with the additional input
+    """
+    base_path = params['DATA_ROOT_PATH']
+    repeat_images = dict()
+
+    set_names = set(vidtext_set_names['video']+vidtext_set_names['text'])
+    for s in set_names:
+        # retrieve number of output captions per sample
+        num_cap = np.load(base_path + '/' + params['DESCRIPTION_COUNTS_FILES'][s])
+
+        # get temporal links
+        links = []
+        with open(base_path + '/' + params['LINK_SAMPLE_FILES'][s], 'r') as f_links:
+            for line in f_links:
+                links.append(int(line.strip()))
+
+        outputs = []
+        with open(base_path + '/' + params['DESCRIPTION_FILES'][s], 'r') as f_outs:
+            for line in f_outs:
+                outputs.append(line.strip())
+
+        # get outputs
+        if s in vidtext_set_names['video']:
+            prev_videos = []
+            for feat_type in params['FEATURE_NAMES']:
+                list_files = base_path + '/' + params['FRAMES_LIST_FILES'][s] % feat_type
+                counts_files = base_path + '/' + params['FRAMES_COUNTS_FILES'][s] % feat_type
+                with open(list_files, 'r') as f_outs, open(counts_files, 'r') as f_outs_counts:
+                    prev_videos.append([[line.strip() for line in f_outs], [int(line.strip()) for line in f_outs_counts]])
+
+        # modify outputs and prepare inputs
+        images_repeat = []
+        final_outputs = []
+        if s in vidtext_set_names['video']:
+            final_inputs_vid = dict()
+            for feat_type in params['FEATURE_NAMES']:
+                final_inputs_vid[feat_type] = [[], []]
+        final_inputs_txt = []
+
+
+        for i, link in enumerate(links):
+            ini_out = np.sum(num_cap[:i])
+            these_outputs = outputs[ini_out:ini_out + num_cap[i]]
+
+            # first sample in the temporally-linked sequence
+            if link == -1:
+                images_repeat.append(num_cap[i])
+                for out in these_outputs:
+                    final_outputs.append(out)
+                    if s in vidtext_set_names['text']:
+                        final_inputs_txt.append('')
+                if s in vidtext_set_names['video']:
+                    for ifeat, feat_type in enumerate(params['FEATURE_NAMES']):
+                        final_inputs_vid[feat_type][1] += [0]
+            else:
+                if s in vidtext_set_names['text']:
+                    prev_ini_out = np.sum(num_cap[:link])
+                    prev_outputs = outputs[prev_ini_out:prev_ini_out + num_cap[link]]
+                    images_repeat.append(num_cap[i] * num_cap[link])
+                else:
+                    images_repeat.append(num_cap[i])
+
+                # video only
+                if s not in vidtext_set_names['text'] and s in vidtext_set_names['video']:
+                    for out in these_outputs:
+                        final_outputs.append(out)
+
+                    for ifeat, feat_type in enumerate(params['FEATURE_NAMES']):
+                        if link > 0:
+                            init_frame = int(sum(prev_videos[ifeat][1][:link]))
+                        else:
+                            init_frame = 0
+                        this_count = prev_videos[ifeat][1][link]
+                        final_inputs_vid[feat_type][0] += prev_videos[ifeat][0][init_frame:init_frame+this_count]
+                        final_inputs_vid[feat_type][1] += [this_count]
+
+                # text only
+                elif s in vidtext_set_names['text'] and s not in vidtext_set_names['video']:
+                    for n in range(num_cap[link]):
+                        for out in these_outputs:
+                            final_outputs.append(out)
+                            final_inputs_txt.append(prev_outputs[n])
+
+                # both
+                else:
+                    for n in range(num_cap[link]):
+                        for out in these_outputs:
+                            final_outputs.append(out)
+                            final_inputs_txt.append(prev_outputs[n])
+
+                    for ifeat, feat_type in enumerate(params['FEATURE_NAMES']):
+                        if link > 0:
+                            init_frame = int(sum(prev_videos[ifeat][1][:link]))
+                        else:
+                            init_frame = 0
+                        this_count = prev_videos[ifeat][1][link]
+                        final_inputs_vid[feat_type][0] += prev_videos[ifeat][0][init_frame:init_frame + this_count]
+                        final_inputs_vid[feat_type][1] += [this_count]
+
+
+        # Overwrite input images assigning the new repeat pattern
+        for feat_type in params['FEATURE_NAMES']:
+            list_files = base_path + '/' + params['FRAMES_LIST_FILES'][s] % feat_type
+            counts_files = base_path + '/' + params['FRAMES_COUNTS_FILES'][s] % feat_type
+
+            ds.setInput([list_files, counts_files],
+                        s,
+                        type=params['INPUT_DATA_TYPE'],
+                        id=params['INPUTS_IDS_DATASET'][0],
+                        repeat_set=images_repeat,
+                        max_video_len=params['NUM_FRAMES'],
+                        feat_len=params['IMG_FEAT_SIZE'],
+                        overwrite_split=True,
+                        data_augmentation_types=params['DATA_AUGMENTATION_TYPE'])
+
+        # if text
+        if s in vidtext_set_names['text']:
+            # Overwrite outputs assigning the new outputs repeat pattern
+            ds.setOutput(final_outputs,
+                         s,
+                         type='text',
+                         id=params['OUTPUTS_IDS_DATASET'][0],
+                         build_vocabulary=True,
+                         tokenization=params['TOKENIZATION_METHOD'],
+                         fill=params['FILL'],
+                         pad_on_batch=True,
+                         max_text_len=params['MAX_OUTPUT_TEXT_LEN'],
+                         sample_weights=params['SAMPLE_WEIGHTS'],
+                         min_occ=params['MIN_OCCURRENCES_VOCAB'],
+                         overwrite_split=True)
+
+            # Overwrite the input state_below assigning the new outputs repeat pattern
+            ds.setInput(final_outputs,
+                        s,
+                        type='text',
+                        id=params['INPUTS_IDS_DATASET'][1],
+                        required=False,
+                        tokenization=params['TOKENIZATION_METHOD'],
+                        pad_on_batch=True,
+                        build_vocabulary=params['OUTPUTS_IDS_DATASET'][0],
+                        offset=1,
+                        fill=params['FILL'],
+                        max_text_len=params['MAX_OUTPUT_TEXT_LEN'],
+                        max_words=params['OUTPUT_VOCABULARY_SIZE'],
+                        min_occ=params['MIN_OCCURRENCES_VOCAB'],
+                        overwrite_split=True)
+
+        if s in vidtext_set_names['video']:
+            for feat_type in params['FEATURE_NAMES']:
+                ds.setInput(final_inputs_vid[feat_type],
+                        s,
+                        type=params['INPUT_DATA_TYPE'],
+                        id=params['INPUTS_IDS_DATASET'][3],
+                        repeat_set=images_repeat,
+                        max_video_len=params['NUM_FRAMES'],
+                        feat_len=params['IMG_FEAT_SIZE'],
+                        overwrite_split=True,
+                        data_augmentation_types=params['DATA_AUGMENTATION_TYPE'])
+
+        if s in vidtext_set_names['text']:
+            # Set new input captions from previous temporally-linked event/video
+            ds.setInput(final_inputs_txt,
+                        s,
+                        type='text',
+                        id=params['INPUTS_IDS_DATASET'][2],
+                        required=False,
+                        build_vocabulary=params['OUTPUTS_IDS_DATASET'][0],
+                        tokenization=params['TOKENIZATION_METHOD'],
+                        fill=params['FILL'],
+                        pad_on_batch=True,
+                        max_text_len=params['MAX_OUTPUT_TEXT_LEN'],
+                        min_occ=params['MIN_OCCURRENCES_VOCAB'],
+                        overwrite_split=True)
+
         repeat_images[s] = images_repeat
 
     return ds, repeat_images

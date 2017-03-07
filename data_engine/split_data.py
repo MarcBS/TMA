@@ -65,7 +65,7 @@ for n,s in sets.iteritems():
         these_images = glob.glob(data_path +'/'+ in_images_path +'/'+ set +'/*'+format)
         for im in these_images:
             images[set].append(im.split('/')[-1].split('.')[0])
-            images[set] = sorted(images[set])
+        images[set] = sorted(images[set])
 
 # read segmentations
 events = dict()
