@@ -212,7 +212,7 @@ def load_parameters():
     BIDIRECTIONAL_DEEP_PREV_SENT_ENCODER = True   # Use bidirectional encoder in all encoding layers
 
     DECODER_HIDDEN_SIZE = 484                     # For models with LSTM decoder (ABiViRNet 484)
-    SKIP_VECTORS_HIDDEN_SIZE = 301
+    SKIP_VECTORS_HIDDEN_SIZE = TARGET_TEXT_EMBEDDING_SIZE
     ADDITIONAL_OUTPUT_MERGE_MODE = 'sum'          # Merge mode for the skip connections
     WEIGHTED_MERGE = False       # Wether we want to apply a conventional or a weighted merge
 

@@ -4,7 +4,7 @@ from timeit import default_timer as timer
 from config import load_parameters
 from data_engine.prepare_data import build_dataset
 from viddesc_model import VideoDesc_Model
-
+from keras_wrapper.utils import decode_predictions_beam_search, decode_predictions
 from keras_wrapper.cnn_model import loadModel, saveModel, transferWeights, updateModel
 from keras_wrapper.extra.callbacks import EvalPerformance, Sample
 from keras_wrapper.extra.read_write import dict2pkl, list2file
@@ -74,7 +74,6 @@ def train_model(params):
         params['MAX_EPOCH'] += params['RELOAD']
 
     else:
-
         if params['RELOAD'] == 0 or params['LOAD_WEIGHTS_ONLY']: # build new model
             video_model = VideoDesc_Model(params,
                                           type=params['MODEL_TYPE'],
@@ -109,7 +108,6 @@ def train_model(params):
                     video_model = transferWeights(old_model, video_model, params['LAYERS_MAPPING'][i])
                 video_model.setOptimizer()
                 params['RELOAD'] = 0
-
         else: # resume from previously trained model
             video_model = loadModel(params['PRE_TRAINED_MODEL_STORE_PATHS'], params['RELOAD'])
             video_model.params['LR'] = params['LR']
@@ -207,13 +205,10 @@ def apply_Video_model(params):
             params_prediction['alpha_factor'] = params['ALPHA_FACTOR']
             params_prediction['temporally_linked'] = '-linked' in params['DATASET_NAME'] and '-upperbound' not in params['DATASET_NAME'] and '-video' not in params['DATASET_NAME']
             predictions = video_model.predictBeamSearchNet(dataset, params_prediction)[s]
-            predictions = video_model.decode_predictions_beam_search(predictions,
-                                                                     vocab,
-                                                                     verbose=params['VERBOSE'])
+            predictions = decode_predictions_beam_search(predictions, vocab, verbose=params['VERBOSE'])
         else:
             predictions = video_model.predictNet(dataset, params_prediction)[s]
-            predictions = video_model.decode_predictions(predictions, 1, # always set temperature to 1
-                                                                vocab, params['SAMPLING'], verbose=params['VERBOSE'])
+            predictions = decode_predictions(predictions, 1, vocab, params['SAMPLING'], verbose=params['VERBOSE'])
 
         # Store result
         filepath = video_model.model_path+'/'+ s +'_sampling.pred' # results file
