@@ -7,7 +7,7 @@ def load_parameters():
     DATA_ROOT_PATH = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
 
     # preprocessed features
-    DATASET_NAME = 'EDUB-SegDesc_features-linked-vidtext'   # Dataset name (add '-linked' suffix for using
+    DATASET_NAME = 'EDUB-SegDesc_features-linked-video'   # Dataset name (add '-linked' suffix for using
                                                     # dataset with temporally-linked training data)
                                                     #
                                                     #    -linked
@@ -20,7 +20,7 @@ def load_parameters():
                                                     #    -vidtext-embed
                                                     #
 
-    PRE_TRAINED_DATASET_NAME = None #'MSVD_features'      # Dataset name for reusing vocabulary of pre-trained model
+    PRE_TRAINED_DATASET_NAME = 'MSVD_features'      # Dataset name for reusing vocabulary of pre-trained model (set to None for disabling)
                                                     # (only applicable if we are using a pre-trained model, default None)
     VOCABULARIES_MAPPING = {'description': 'description',
                             'state_below': 'description',
@@ -36,28 +36,35 @@ def load_parameters():
     # Input data
     INPUT_DATA_TYPE = 'video-features'                          # 'video-features' or 'video'
     NUM_FRAMES = 26                                             # fixed number of input frames per video
-    
+
+    if '-noninfo' in DATASET_NAME:
+        suffix_annotations = '_without_noninfo'
+        suffix_features = '_Without_NonInfo'
+    else:
+        suffix_annotations = ''
+        suffix_features = ''
+
     #### Features from video frames
-    FRAMES_LIST_FILES = {'train': 'Annotations/%s/train_feat_list.txt',                 # Feature frames list files
-                         'val': 'Annotations/%s/val_feat_list.txt',
-                         'test': 'Annotations/%s/test_feat_list.txt',
+    FRAMES_LIST_FILES = {'train': 'Annotations/%s/train_feat_list'+suffix_annotations+'.txt',                 # Feature frames list files
+                         'val': 'Annotations/%s/val_feat_list'+suffix_annotations+'.txt',
+                         'test': 'Annotations/%s/test_feat_list'+suffix_annotations+'.txt',
                         }
-    FRAMES_COUNTS_FILES = {  'train': 'Annotations/%s/train_feat_counts.txt',           # Frames counts files
-                             'val': 'Annotations/%s/val_feat_counts.txt',
-                             'test': 'Annotations/%s/test_feat_counts.txt',
+    FRAMES_COUNTS_FILES = {  'train': 'Annotations/%s/train_feat_counts'+suffix_annotations+'.txt',           # Frames counts files
+                             'val': 'Annotations/%s/val_feat_counts'+suffix_annotations+'.txt',
+                             'test': 'Annotations/%s/test_feat_counts'+suffix_annotations+'.txt',
                           }
-    FEATURE_NAMES = ['ImageNet'] # append '_L2' at the end of each feature type if using their L2 version
+    FEATURE_NAMES = ['ImageNet'+suffix_features] # append '_L2' at the end of each feature type if using their L2 version
 
     #FEATURE_NAMES = ['ImageNetFV', 'ImageNet', 'Scenes', 'C3D'] # append '_L2' at the end of each feature type if using their L2 version
     
     # Output data
-    DESCRIPTION_FILES = {'train': 'Annotations/train_descriptions.txt',                 # Description files
-                         'val': 'Annotations/val_descriptions.txt',
-                         'test': 'Annotations/test_descriptions.txt',
+    DESCRIPTION_FILES = {'train': 'Annotations/train_descriptions'+suffix_annotations+'.txt',                 # Description files
+                         'val': 'Annotations/val_descriptions'+suffix_annotations+'.txt',
+                         'test': 'Annotations/test_descriptions'+suffix_annotations+'.txt',
                         }
-    DESCRIPTION_COUNTS_FILES = { 'train': 'Annotations/train_descriptions_counts.npy',  # Description counts files
-                                 'val': 'Annotations/val_descriptions_counts.npy',
-                                 'test': 'Annotations/test_descriptions_counts.npy',
+    DESCRIPTION_COUNTS_FILES = { 'train': 'Annotations/train_descriptions_counts'+suffix_annotations+'.npy',  # Description counts files
+                                 'val': 'Annotations/val_descriptions_counts'+suffix_annotations+'.npy',
+                                 'test': 'Annotations/test_descriptions_counts'+suffix_annotations+'.npy',
                                }
 
     # Dataset parameters
@@ -75,9 +82,9 @@ def load_parameters():
 
     if '-linked' in DATASET_NAME:
 
-        LINK_SAMPLE_FILES = {'train': 'Annotations/train_link_samples.txt',     # Links index files
-                             'val': 'Annotations/val_link_samples.txt',
-                             'test': 'Annotations/test_link_samples.txt',
+        LINK_SAMPLE_FILES = {'train': 'Annotations/train_link_samples'+suffix_annotations+'.txt',     # Links index files
+                             'val': 'Annotations/val_link_samples'+suffix_annotations+'.txt',
+                             'test': 'Annotations/test_link_samples'+suffix_annotations+'.txt',
                             }
 
         INPUTS_IDS_DATASET.append('prev_description')
@@ -153,17 +160,17 @@ def load_parameters():
     LOSS = 'categorical_crossentropy'
     CLASSIFIER_ACTIVATION = 'softmax'
 
-    OPTIMIZER = 'Adadelta'                            # Optimizer
-    LR = 1.                                   # Learning rate. Recommended values - Adam 0.001 - Adadelta 1.0
+    OPTIMIZER = 'Adam'                            # Optimizer
+    LR = 0.001                                   # Learning rate. Recommended values - Adam 0.001 - Adadelta 1.0
     CLIP_C = 10.                                  # During training, clip gradients to this norm
     if not '-vidtext-embed' in DATASET_NAME:
         SAMPLE_WEIGHTS = True                         # Select whether we use a weights matrix (mask) for the data outputs
-    LR_DECAY = None                                  # Minimum number of epochs before the next LR decay. Set to None if don't want to decay the learning rate
-    LR_GAMMA = 0.95                               # Multiplier used for decreasing the LR
+    LR_DECAY = 1                                  # Minimum number of epochs before the next LR decay. Set to None if don't want to decay the learning rate
+    LR_GAMMA = 0.995                               # Multiplier used for decreasing the LR
 
     # Training parameters
     MAX_EPOCH = 200                                # Stop when computed this number of epochs
-    BATCH_SIZE = 64                               # ABiViRNet trained with BATCH_SIZE = 64
+    BATCH_SIZE = 1#64                               # ABiViRNet trained with BATCH_SIZE = 64
 
     HOMOGENEOUS_BATCHES = False                         # Use batches with homogeneous output lengths for every minibatch (Possibly buggy!)
     PARALLEL_LOADERS = 8                                # Parallel data batch loaders
@@ -182,12 +189,13 @@ def load_parameters():
         STOP_METRIC = 'accuracy'
 
     # Model parameters
-    MODEL_TYPE = 'TemporallyLinkedVideoDescriptionAttDoublePrev'       # 'ArcticVideoCaptionWithInit'
+    MODEL_TYPE = 'DeepSeek'       # 'ArcticVideoCaptionWithInit'
                                                     # 'ArcticVideoCaptionNoLSTMEncWithInit'
                                                     # 'TemporallyLinkedVideoDescriptionNoAtt'
                                                     # 'TemporallyLinkedVideoDescriptionAtt'
                                                     # 'TemporallyLinkedVideoDescriptionAttDoublePrev'
                                                     # 'VideoTextEmbedding'
+                                                    # 'DeepSeek'
 
     RNN_TYPE = 'LSTM'                             # RNN unit type ('LSTM' and 'GRU' supported)
 
@@ -216,6 +224,9 @@ def load_parameters():
     ADDITIONAL_OUTPUT_MERGE_MODE = 'sum'          # Merge mode for the skip connections
     WEIGHTED_MERGE = False       # Wether we want to apply a conventional or a weighted merge
 
+
+    AFFINE_LAYERS_DIM = 500     # Dimensionality of the affine layers in 'DeepSeek' model
+
     IMG_EMBEDDING_LAYERS = []  # FC layers for visual embedding
                                # Here we should specify the activation function and the output dimension
                                # (e.g IMG_EMBEDDING_LAYERS = [('linear', 1024)]
@@ -235,7 +246,7 @@ def load_parameters():
     WEIGHT_DECAY = 1e-4                           # L2 regularization
     RECURRENT_WEIGHT_DECAY = 0.                   # L2 regularization in recurrent layers
 
-    USE_DROPOUT = False                           # Use dropout
+    USE_DROPOUT = True                           # Use dropout
     DROPOUT_P = 0.5                               # Percentage of units to drop
 
     USE_RECURRENT_DROPOUT = False                 # Use dropout in recurrent layers # DANGEROUS!
@@ -251,7 +262,7 @@ def load_parameters():
     USE_L2 = False                                # L2 normalization on the features
 
     # Results plot and models storing parameters
-    EXTRA_NAME = 'test'                    # This will be appended to the end of the model name
+    EXTRA_NAME = 'test'#'88_non-info_removal_prev_video_repeat2'                    # This will be appended to the end of the model name
     MODEL_NAME = DATASET_NAME + '_' + MODEL_TYPE +\
                  '_txtemb_' + str(TARGET_TEXT_EMBEDDING_SIZE) + \
                  '_imgemb_' + '_'.join([layer[0] for layer in IMG_EMBEDDING_LAYERS]) + \
@@ -264,7 +275,7 @@ def load_parameters():
     MODEL_NAME += '_'+EXTRA_NAME
 
     # Name and location of the pre-trained model (only if RELOAD > 0)
-    PRE_TRAINED_MODELS = MODEL_NAME
+    PRE_TRAINED_MODELS = ['MSVD_best_model']
             # default: MODEL_NAME
             # ['EDUB-SegDesc_features-vidtext-embed_VideoTextEmbedding_txtemb_301_imgemb__lstmenc_717_lstm_484_additional_output_mode_sum_deepout__Adadelta_decay_None-0.95_vidtext_classification_BLSTM_text']
             #['EDUB-SegDesc_features-vidtext-embed_VideoTextEmbedding_txtemb_301_imgemb__lstmenc_717_lstm_484_additional_output_mode_sum_deepout__Adadelta_decay_None-0.95_vidtext_classification']
@@ -319,6 +330,19 @@ def load_parameters():
                                }
                               ]
 
+        elif MODEL_TYPE == 'TemporallyLinkedVideoDescriptionAttDoublePrev':
+            LAYERS_MAPPING = [{'bidirectional_encoder': 'bidirectional_encoder_LSTM',
+                               'bidirectional_encoder': 'prev_vid_emb_bidirectional_encoder_LSTM',
+                               'initial_state': 'initial_state',
+                               'initial_memory': 'initial_memory',
+                               'attlstmcond_1': 'decoder_AttLSTMCond3Inputs',  # 'decoder_AttLSTMCond',
+                               'target_word_embedding': 'target_word_embedding',
+                               'logit_ctx': 'logit_ctx',
+                               'logit_lstm': 'logit_lstm',
+                               'description': 'description'
+                               }
+                              ]
+
         elif len(PRE_TRAINED_MODELS) == 2:
             LAYERS_MAPPING = [{'bidirectional_encoder': 'bidirectional_encoder_LSTM',
                           'initial_state': 'initial_state',
@@ -352,7 +376,7 @@ def load_parameters():
 
     SAMPLING_SAVE_MODE = 'list'                        # 'list' or 'vqa'
     VERBOSE = 1                                        # Vqerbosity level
-    RELOAD =  0 #[21] # [16] # [2] #[17]   #  [2, 0]                    # If 0 start training from scratch, otherwise the model
+    RELOAD =  [2] #[21] # [16] # [2] #[17]   #  [2, 0]                    # If 0 start training from scratch, otherwise the model
                                                        # Saved on epoch 'RELOAD' will be used
     REBUILD_DATASET = True                             # Build again or use stored instance
     MODE = 'training'                                  # 'training' or 'sampling' (if 'sampling' then RELOAD must

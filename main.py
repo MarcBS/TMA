@@ -115,6 +115,9 @@ def train_model(params):
 
             if video_model.model_path != params['STORE_PATH']:
                 video_model.setName(params['MODEL_NAME'], models_path=params['STORE_PATH'], clear_dirs=False)
+    # Update optimizer either if we are loading or building a model
+    video_model.params = params
+    video_model.setOptimizer()
     ###########
 
 

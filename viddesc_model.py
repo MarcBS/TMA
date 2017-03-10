@@ -140,6 +140,123 @@ class VideoDesc_Model(Model_Wrapper):
     #       PREDEFINED MODELS
     # ------------------------------------------------------- #
 
+    def DeepSeek(self, params):
+        """
+        :param params:
+        :return:
+        """
+
+        # Video model
+        video = Input(name=self.ids_inputs[0], shape=tuple([None, params['IMG_FEAT_SIZE']]))
+        input_video = video
+        ##################################################################
+        #                       ENCODER
+        ##################################################################
+        for activation, dimension in params['IMG_EMBEDDING_LAYERS']:
+            input_video = TimeDistributed(Dense(dimension, name='%s_1'%activation, activation=activation,
+                                               W_regularizer=l2(params['WEIGHT_DECAY'])))(input_video)
+            input_video = Regularize(input_video, params, name='%s_1'%activation)
+
+        if params['ENCODER_HIDDEN_SIZE'] > 0:
+            encoder = eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
+                                                       W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                       U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                       b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                       dropout_W=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
+                                                       dropout_U=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
+                                                       return_sequences=True,
+                                                       name='encoder_' + params['RNN_TYPE'])(input_video)
+            encoder_back = eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
+                                                       W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                       U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                       b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                       dropout_W=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
+                                                       dropout_U=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
+                                                       return_sequences=True,
+                                                       go_backwards=True,
+                                                       name='encoder_back_' + params['RNN_TYPE'])(input_video)
+        
+        # Affine layer
+        encoder_back = TimeDistributed(Dense(params['AFFINE_LAYERS_DIM'])
+                                       , name='affine_back')(encoder_back)
+        encoder = TimeDistributed(Dense(params['AFFINE_LAYERS_DIM'])
+                                  , name='affine_forw')(encoder)
+        input_video = Lambda(function=lambda x: K.sum(x, axis=1),
+                             output_shape=lambda shape: shape[0],
+                             mask_function=lambda x, m: m[0])([encoder_back, encoder])
+        input_video = TimeDistributed(Activation('relu'))(input_video)
+
+
+        # Previously generated words as inputs for training
+        next_words = Input(name=self.ids_inputs[1], batch_shape=tuple([None, None]), dtype='int32')
+        emb = Embedding(params['OUTPUT_VOCABULARY_SIZE'],
+                        params['TARGET_TEXT_EMBEDDING_SIZE'],
+                        name='target_word_embedding',
+                        W_regularizer=l2(params['WEIGHT_DECAY']),
+                        trainable=self.trg_embedding_weights_trainable,
+                        weights=self.trg_embedding_weights,
+                        mask_zero=True)(next_words)
+        emb = Regularize(emb, params, name='target_word_embedding')
+
+        
+        # LSTM initialization perceptrons with ctx mean
+        # 3.2. Decoder's RNN initialization perceptrons with ctx mean
+        ctx_mean = Lambda(lambda x: K.mean(x, axis=1),
+                          output_shape=lambda s: (s[0], s[2]), name='lambda_mean')(input_video)
+        
+        
+        if len(params['INIT_LAYERS']) > 0:
+            for n_layer_init in range(len(params['INIT_LAYERS'])-1):
+                ctx_mean = Dense(params['DECODER_HIDDEN_SIZE'], name='init_layer_%d' % n_layer_init,
+                                 W_regularizer=l2(params['WEIGHT_DECAY']),
+                                 activation=params['INIT_LAYERS'][n_layer_init]
+                                 )(ctx_mean)
+                ctx_mean = Regularize(ctx_mean, params, name='ctx' + str(n_layer_init))
+
+            initial_state = Dense(params['DECODER_HIDDEN_SIZE'], name='initial_state',
+                                  W_regularizer=l2(params['WEIGHT_DECAY']),
+                                  activation=params['INIT_LAYERS'][-1]
+                                  )(ctx_mean)
+            initial_state = Regularize(initial_state, params, name='initial_state')
+            input_attentional_decoder = [emb, input_video, initial_state]
+
+            if params['RNN_TYPE'] == 'LSTM':
+                initial_memory = Dense(params['DECODER_HIDDEN_SIZE'], name='initial_memory',
+                                       W_regularizer=l2(params['WEIGHT_DECAY']),
+                                       activation=params['INIT_LAYERS'][-1])(ctx_mean)
+                initial_memory = Regularize(initial_memory, params, name='initial_memory')
+                input_attentional_decoder.append(initial_memory)
+        else:
+            input_attentional_decoder = [emb, input_video]
+
+        ##################################################################
+        #                       DECODER
+        ##################################################################
+
+        # 3.3. LSTM decoder
+        sharedRNN = eval(params['RNN_TYPE']+'Cond')(params['DECODER_HIDDEN_SIZE'],
+                                                                     W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                     U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                     b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                     dropout_W=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
+                                                                     dropout_U=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
+                                                                     return_sequences=True,
+                                                                     name='decoder_' + params['RNN_TYPE']+'Cond')
+
+        proj_h = sharedRNN(input_attentional_decoder)
+
+        # 3.7. Output layer: Softmax
+        shared_FC_soft = TimeDistributed(Dense(params['OUTPUT_VOCABULARY_SIZE'],
+                                               activation=params['CLASSIFIER_ACTIVATION'],
+                                               W_regularizer=l2(params['WEIGHT_DECAY']),
+                                               name=params['CLASSIFIER_ACTIVATION']
+                                               ),
+                                         name=self.ids_outputs[0])
+        softout = shared_FC_soft(proj_h)
+
+        self.model = Model(input=[video, next_words], output=softout)
+
+
     def ArcticVideoCaptionWithInit(self, params):
         """
         Video captioning with:
@@ -1380,12 +1497,12 @@ class VideoDesc_Model(Model_Wrapper):
                                                                          'USE_RECURRENT_DROPOUT'] else None,
                                                                      dropout_V=params['RECURRENT_DROPOUT_P'] if params[
                                                                          'USE_RECURRENT_DROPOUT'] else None,
-                                                                     dropout_wa=params['DROPOUT_P'] if params[
-                                                                         'USE_DROPOUT'] else None,
-                                                                     dropout_Wa=params['DROPOUT_P'] if params[
-                                                                         'USE_DROPOUT'] else None,
-                                                                     dropout_Ua=params['DROPOUT_P'] if params[
-                                                                         'USE_DROPOUT'] else None,
+                                                                     dropout_wa=params['RECURRENT_DROPOUT_P'] if params[
+                                                                         'USE_RECURRENT_DROPOUT'] else None,
+                                                                     dropout_Wa=params['RECURRENT_DROPOUT_P'] if params[
+                                                                         'USE_RECURRENT_DROPOUT'] else None,
+                                                                     dropout_Ua=params['RECURRENT_DROPOUT_P'] if params[
+                                                                         'USE_RECURRENT_DROPOUT'] else None,
                                                                      return_sequences=True,
                                                                      return_extra_variables=True,
                                                                      return_states=True,
@@ -1931,18 +2048,18 @@ class VideoDesc_Model(Model_Wrapper):
                                                                             dropout_V=params['RECURRENT_DROPOUT_P'] if
                                                                             params[
                                                                                 'USE_RECURRENT_DROPOUT'] else None,
-                                                                            dropout_wa=params['DROPOUT_P'] if params[
-                                                                                'USE_DROPOUT'] else None,
-                                                                            dropout_Wa=params['DROPOUT_P'] if params[
-                                                                                'USE_DROPOUT'] else None,
-                                                                            dropout_Ua=params['DROPOUT_P'] if params[
-                                                                                'USE_DROPOUT'] else None,
+                                                                            dropout_wa=params['RECURRENT_DROPOUT_P'] if params[
+                                                                                'USE_RECURRENT_DROPOUT'] else None,
+                                                                            dropout_Wa=params['RECURRENT_DROPOUT_P'] if params[
+                                                                                'USE_RECURRENT_DROPOUT'] else None,
+                                                                            dropout_Ua=params['RECURRENT_DROPOUT_P'] if params[
+                                                                                'USE_RECURRENT_DROPOUT'] else None,
                                                                             return_sequences=True,
                                                                             return_extra_variables=True,
                                                                             return_states=True,
                                                                             attend_on_both=True,
                                                                             name='decoder_Att' + params[
-                                                                                'RNN_TYPE'] + 'Cond2Inputs')
+                                                                                'RNN_TYPE'] + 'Cond3Inputs')
 
         rnn_output = sharedAttRNNCond(input_attentional_decoder)
         proj_h = rnn_output[0]
