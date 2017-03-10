@@ -4,6 +4,7 @@
 base_path = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
 
 path_files = 'Annotations'
+without_noninfo = True
 
 # Names of the different samples
 #   All samples belonging to the same day must accomplish the following requirements:
@@ -17,14 +18,20 @@ path_files = 'Annotations'
 #       Day2_video_1
 #       Day2_video_2
 ####
-train = 'train_list_final.txt'
-val = 'val_list_final.txt'
-test = 'test_list_final.txt'
+
+if without_noninfo:
+    suffix = '_without_noninfo'
+else:
+    suffix = ''
+
+train = 'train_list_final'+suffix+'.txt'
+val = 'val_list_final'+suffix+'.txt'
+test = 'test_list_final'+suffix+'.txt'
 
 # Outputs
-train_out = 'train_link_samples.txt'
-val_out = 'val_link_samples.txt'
-test_out = 'test_link_samples.txt'
+train_out = 'train_link_samples'+suffix+'.txt'
+val_out = 'val_link_samples'+suffix+'.txt'
+test_out = 'test_link_samples'+suffix+'.txt'
 
 
 #################################

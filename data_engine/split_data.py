@@ -23,6 +23,18 @@ sets_names = ['Estefania1', 'Estefania2', 'Estefania3', 'Estefania4', 'Estefania
               'Petia1', 'Petia2',
               ]
 
+sets = {'train': ['Maya14', 'Maya11', 'Maya10', 'Maya13', 'Maya12', 'Petia2',
+                  'MAngeles4', 'Mariella', 'MAngeles1', 'Pedro1', 'MAngeles3',
+                  'Pedro3', 'MarcC1', 'Estefania1', 'Estefania3', 'Marc18', 'Maya5',
+                  'Gabriel3', 'Maya6', 'Maya1', 'Maya3', 'Marc16', 'Marc17',
+                  'Marc15', 'Maya9', 'Maya8', 'Marc10', 'Marc11', 'Gabriel2',
+                  'Marc7', 'Maya4', 'MAngeles2', 'Gabriel1', 'Marc8', 'Marc12',
+                  'Marc5', 'Mariella3', 'Marc2', 'Marc3'],
+        'val': ['Pedro4', 'Pedro2', 'Estefania4', 'Maya7', 'Marc6', 'Petia1', 'Mariella2'],
+        'test': ['Estefania2', 'Marc1', 'Estefania5', 'Marc9', 'Gabriel4', 'Maya2', 'Marc4', 'Marc14', 'Marc13'],
+        }
+
+
 # input data paths
 in_features_path = 'Features/Features_original'  # <name>/<in_features_name>.csv
 in_descriptions_path = 'GT/descriptions'  # <name>.txt
@@ -33,29 +45,36 @@ format = '.jpg'
 # list of non-informative images stored in <in_features_path>/NonInfo/<noninformative_prefix>.csv
 # leave empty for not using it
 in_noninfo_path = 'Features/NonInfo'
-noninformative_prefix = ''
+noninformative_prefix = 'infoCNN_outputClasses'
 
 # output data paths
 out_features_path = 'Features'   # <set_split>_<out_features_name>_all_frames.csv & <set_split>_<out_features_name>_all_frames_counts.txt
 out_descriptions_path = 'Annotations' # captions.id.en & <set_split>_list.txt
-out_features_name = 'ImageNet'
+out_features_name = 'ImageNet_Without_NonInfo'
 separator = '----'
 
 
 ####################################
 
-# generate data splits
-available_sets = len(sets_names)
-randomized = np.random.choice(sets_names, available_sets, replace=False)
+if noninformative_prefix:
+    suffix_name = '_without_noninfo'
+else:
+    suffix_name = ''
 
-#randomized = np.array(sets_names)
+# Only apply random selection if the sets split is not already provided
+if not sets:
+    # generate data splits
+    available_sets = len(sets_names)
+    randomized = np.random.choice(sets_names, available_sets, replace=False)
 
-sets = dict()
-picked_so_far = 0
-for s,p in split_prop.iteritems():
-    last_picked = np.ceil(picked_so_far+available_sets*p)
-    sets[s] = randomized[picked_so_far:last_picked]
-    picked_so_far = last_picked
+    #randomized = np.array(sets_names)
+
+    sets = dict()
+    picked_so_far = 0
+    for s,p in split_prop.iteritems():
+        last_picked = np.ceil(picked_so_far+available_sets*p)
+        sets[s] = randomized[picked_so_far:last_picked]
+        picked_so_far = last_picked
 
 # read images
 images = dict()
@@ -121,20 +140,18 @@ for n,s in sets.iteritems():
         assert np.sum(counts[set]) == len(images[set])
 
 
-# get descriptions for each segment
+# get erroneous segments
 to_remove = dict()
-caption_general = open(data_path +'/'+ out_descriptions_path +'/'+'captions_final.id.en', 'w')
-for n,s in sets.iteritems():
-    split_file = open(data_path +'/'+ out_descriptions_path +'/'+n+'_list_final.txt', 'w')
+for n, s in sets.iteritems():
     to_remove[n] = dict()
     for set in s:
         to_remove[n][set] = []
-        with open(data_path +'/'+ in_descriptions_path +'/'+ set +'.txt', 'r') as desc_file:
+        with open(data_path + '/' + in_descriptions_path + '/' + set + '.txt', 'r') as desc_file:
             prev_segm = -1
             count = 0
             segm_count = 0
             segm_count_show = 0
-            for cline,line in enumerate(desc_file):
+            for cline, line in enumerate(desc_file):
                 if line:
                     line = line.rstrip('\n').split(',')
                     segm = line[0]
@@ -145,33 +162,29 @@ for n,s in sets.iteritems():
                     else:
                         if prev_segm != segm:
                             segm_count_show += 1
-                            split_file.write(set + '_Segment_' + str(segm_count_show) + '\n')
                             count = 0
-                        caption_general.write(set + '_Segment_' + str(segm_count_show)
-                                              + '#' + str(count) + separator + desc + '\n')
                         count += 1
-                    assert segm[:7] == 'Segment', set +', line '+str(cline)
+                    assert segm[:7] == 'Segment', set + ', line ' + str(cline)
                     if prev_segm != segm:
                         if prev_segm == -1:
                             assert int(segm[7:]) == 1
                         else:
-                            assert int(segm[7:]) == int(prev_segm[7:])+1, set +', line '+str(cline)+ ': ' + str(int(segm[7:])) + ' != ' + str(int(prev_segm[7:])+1)
+                            assert int(segm[7:]) == int(prev_segm[7:]) + 1, set + ', line ' + str(cline) + ': ' + str(
+                                int(segm[7:])) + ' != ' + str(int(prev_segm[7:]) + 1)
                         segm_count += 1
                     prev_segm = segm
-            try:
-                int(segm[7:])
-            except:
-                raise Exception(set +' wrong Segment identifier: '+segm)
-            assert segm_count == int(segm[7:]), set + ': ' + str(segm_count) + ' != ' + segm[7:]
-            assert len(counts[set]) == segm_count, set + ': ' + str(segm_count) + ' != ' + str(len(counts[set]))
 
-    split_file.close()
-caption_general.close()
 
 # get features for each data splits
+print 'Building features files...'
+print '----------------------------------------'
 for n,s in sets.iteritems():
-    feats_file = open(data_path + '/' + out_features_path + '/' + n +'_'+out_features_name + '_all_frames.csv', 'w')
-    counts_file = open(data_path + '/' + out_features_path + '/' + n + '_' + out_features_name + '_all_frames_counts.txt', 'w')
+    extra_removed = 0
+    written_in_file = 0
+    all_total = 0
+    all_error = 0
+    feats_file = open(data_path + '/' + out_features_path + '/' + n +'_'+out_features_name + '_all_frames'+suffix_name+'.csv', 'w')
+    counts_file = open(data_path + '/' + out_features_path + '/' + n + '_' + out_features_name + '_all_frames_counts'+suffix_name+'.txt', 'w')
     for set in s:
         these_removed = to_remove[n][set]
         these_counts = counts[set]
@@ -179,6 +192,7 @@ for n,s in sets.iteritems():
         if noninformative_prefix:
             noninfo_file = open(data_path + '/' + in_noninfo_path +'/' +noninformative_prefix +'_'+set+ '.csv', 'r')
         for ic,count in enumerate(these_counts):
+            all_total += 1
             new_count = 0
             these_feats = []
             for c in range(count):
@@ -186,12 +200,22 @@ for n,s in sets.iteritems():
                 is_informative = True
                 if noninformative_prefix:
                     noninfo_line = noninfo_file.next().rstrip('\n')
-                    if float(noninfo_line.split(',')[0]) >= 0.5: # checks if the current frame is non-informative and discards it
+                    # checks if the current frame is non-informative and discards it
+                    if float(noninfo_line.split(',')[0]) >= 0.5:
                         is_informative = False
                 if is_informative:
                     these_feats.append(line)
                     new_count +=1
+            if ic in these_removed:
+                all_error += 1
+            # Empty sequence due to non-informative removal. Let's introduce it into to_remove list
+            if noninformative_prefix and len(these_feats) == 0:
+                if ic not in these_removed:
+                    extra_removed += 1
+                to_remove[n][set].append(ic)
+                these_removed.append(ic)
             if ic not in these_removed:
+                written_in_file += 1
                 for feat in these_feats:
                     feats_file.write(feat+'\n')
                 counts_file.write(str(new_count)+'\n')
@@ -201,6 +225,73 @@ for n,s in sets.iteritems():
         feats_set.close()
     feats_file.close()
     counts_file.close()
+
+    print 'Extra removed',n,':',extra_removed
+    print 'Written in file',n,':',written_in_file
+    print '"ERROR" events',n,':',all_error
+    print 'Total original events',n,':',all_total
+    print
+
+    
+# get descriptions for each segment
+print 'Building captions files...'
+print '----------------------------------------'
+caption_general = open(data_path +'/'+ out_descriptions_path +'/'+'captions_final'+suffix_name+'.id.en', 'w')
+for n,s in sets.iteritems():
+    written_in_file = 0
+    all_total = 0
+    all_error = 0
+    split_file = open(data_path +'/'+ out_descriptions_path +'/'+n+'_list_final'+suffix_name+'.txt', 'w')
+    for set in s:
+        with open(data_path +'/'+ in_descriptions_path +'/'+ set +'.txt', 'r') as desc_file:
+            prev_segm = -1
+            count = 0
+            segm_count = -1
+            segm_count_show = 0
+            for cline,line in enumerate(desc_file):
+                if line:
+                    line = line.rstrip('\n').split(',')
+                    segm = line[0]
+                    desc = ','.join(line[1:])
+                    desc = desc.strip().lower()
+                    if prev_segm != segm:
+                        all_total += 1
+                        if prev_segm == -1:
+                            assert int(segm[7:]) == 1
+                        else:
+                            assert int(segm[7:]) == int(prev_segm[7:])+1, set +', line '+str(cline)+ ': ' + str(int(segm[7:])) + ' != ' + str(int(prev_segm[7:])+1)
+                        segm_count += 1
+                    if desc != 'error' and segm_count not in to_remove[n][set]:
+                        if prev_segm != segm:
+                            written_in_file += 1
+                            segm_count_show += 1
+                            split_file.write(set + '_Segment_' + str(segm_count_show) + '\n')
+                            count = 0
+                        caption_general.write(set + '_Segment_' + str(segm_count_show)
+                                              + '#' + str(count) + separator + desc + '\n')
+                        count += 1
+                    else:
+                        if prev_segm != segm:
+                            all_error += 1
+                    assert segm[:7] == 'Segment', set +', line '+str(cline)
+
+                    prev_segm = segm
+            try:
+                int(segm[7:])
+            except:
+                raise Exception(set +' wrong Segment identifier: '+segm)
+            assert segm_count+1 == int(segm[7:]), set + ': ' + str(segm_count+1) + ' != ' + segm[7:]
+            assert len(counts[set]) == segm_count+1, set + ': ' + str(segm_count+1) + ' != ' + str(len(counts[set]))
+
+    split_file.close()
+    
+    print 'Written in file',n,':',written_in_file
+    print 'All removed events',n,':',all_error
+    print 'Total original events',n,':',all_total
+    print
+    
+caption_general.close()
+
 
 
 print 'DONE!'

@@ -6,9 +6,13 @@ import shutil
 base_path = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
 path_features = 'Features'
 path_annotations = 'Annotations'
+without_noninfo = True
 
 # Inputs
-features_name = 'ImageNet'
+if without_noninfo:
+    features_name = 'ImageNet_Without_NonInfo'
+else:
+    features_name = 'ImageNet'
 
 ###### Files with fixed number of frames per video
 # features_files = ['train_' + features_name + '.csv', 'val_' + features_name + '.csv', 'test_' + features_name + '.csv']
@@ -22,20 +26,37 @@ features_name = 'ImageNet'
 #                   'val_' + features_name + '_counts.txt',
 #                   'test_' + features_name + '_all_frames_counts.txt']
 
-features_files = ['train_' + features_name + '_all_frames.csv',
-                  'val_' + features_name + '_all_frames.csv',
-                  'test_' + features_name + '_all_frames.csv']
-features_counts = ['train_' + features_name + '_all_frames_counts.txt',
-                   'val_' + features_name + '_all_frames_counts.txt',
-                   'test_' + features_name + '_all_frames_counts.txt']
+
+if without_noninfo:
+    features_files = ['train_' + features_name + '_all_frames_without_noninfo.csv',
+                      'val_' + features_name + '_all_frames_without_noninfo.csv',
+                      'test_' + features_name + '_all_frames_without_noninfo.csv']
+    features_counts = ['train_' + features_name + '_all_frames_counts_without_noninfo.txt',
+                       'val_' + features_name + '_all_frames_counts_without_noninfo.txt',
+                       'test_' + features_name + '_all_frames_counts_without_noninfo.txt']
+else:
+    features_files = ['train_' + features_name + '_all_frames.csv',
+                      'val_' + features_name + '_all_frames.csv',
+                      'test_' + features_name + '_all_frames.csv']
+    features_counts = ['train_' + features_name + '_all_frames_counts.txt',
+                       'val_' + features_name + '_all_frames_counts.txt',
+                       'test_' + features_name + '_all_frames_counts.txt']
 
 # features_name = 'C3D_fc8_ImageNet'
 # features_files = ['train_' + features_name + '.csv', 'val_' + features_name + '.csv', 'test_' + features_name + '.csv']
 # features_counts = ['train_' + features_name + '_counts.txt', 'val_' + features_name + '_counts.txt', 'test_' + features_name + '_counts.txt']
 
 # Outputs
-out_lists = ['train_feat_list.txt', 'val_feat_list.txt', 'test_feat_list.txt']
-counts_lists = ['train_feat_counts.txt', 'val_feat_counts.txt', 'test_feat_counts.txt']
+if without_noninfo:
+    out_lists = ['train_feat_list_without_noninfo.txt',
+                 'val_feat_list_without_noninfo.txt',
+                 'test_feat_list_without_noninfo.txt']
+    counts_lists = ['train_feat_counts_without_noninfo.txt',
+                    'val_feat_counts_without_noninfo.txt',
+                    'test_feat_counts_without_noninfo.txt']
+else:
+    out_lists = ['train_feat_list.txt', 'val_feat_list.txt', 'test_feat_list.txt']
+    counts_lists = ['train_feat_counts.txt', 'val_feat_counts.txt', 'test_feat_counts.txt']
 
 
 #########

@@ -6,29 +6,51 @@ def main():
     #base_path = '/media/HDD_2TB/DATASETS/MSVD/'
     base_path = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
 
+    without_noninfo = True
+
     path_files = 'Annotations'
     
     # Inputs
     #text = 'captions.id.en'
-    text = 'captions_final.id.en'
+    if without_noninfo:
+        text = 'captions_final_without_noninfo.id.en'
+    else:
+        text = 'captions_final.id.en'
     separator = '----'
 
     #train = 'train_list.txt'
     #val =   'val_list.txt'
     #test =  'test_list.txt'
 
-    train = 'train_list_final.txt'
-    val =   'val_list_final.txt'
-    test =  'test_list_final.txt'
+    if without_noninfo:
+        train = 'train_list_final_without_noninfo.txt'
+        val = 'val_list_final_without_noninfo.txt'
+        test = 'test_list_final_without_noninfo.txt'
 
-    # Outputs
-    train_out = 'train_descriptions.txt'
-    val_out = 'val_descriptions.txt'
-    test_out = 'test_descriptions.txt'
-    
-    train_out_counts = 'train_descriptions_counts.npy'
-    val_out_counts = 'val_descriptions_counts.npy'
-    test_out_counts = 'test_descriptions_counts.npy'
+        # Outputs
+        train_out = 'train_descriptions_without_noninfo.txt'
+        val_out = 'val_descriptions_without_noninfo.txt'
+        test_out = 'test_descriptions_without_noninfo.txt'
+
+        train_out_counts = 'train_descriptions_counts_without_noninfo.npy'
+        val_out_counts = 'val_descriptions_counts_without_noninfo.npy'
+        test_out_counts = 'test_descriptions_counts_without_noninfo.npy'
+
+    else:
+        train = 'train_list_final.txt'
+        val = 'val_list_final.txt'
+        test = 'test_list_final.txt'
+
+        # Outputs
+        train_out = 'train_descriptions.txt'
+        val_out = 'val_descriptions.txt'
+        test_out = 'test_descriptions.txt'
+
+        train_out_counts = 'train_descriptions_counts.npy'
+        val_out_counts = 'val_descriptions_counts.npy'
+        test_out_counts = 'test_descriptions_counts.npy'
+
+
     
     #################################
 
