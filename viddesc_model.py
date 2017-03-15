@@ -152,31 +152,22 @@ class VideoDesc_Model(Model_Wrapper):
         ##################################################################
         #                       ENCODER
         ##################################################################
-        for activation, dimension in params['IMG_EMBEDDING_LAYERS']:
-            input_video = TimeDistributed(Dense(dimension, name='%s_1'%activation, activation=activation,
-                                               W_regularizer=l2(params['WEIGHT_DECAY'])))(input_video)
-            input_video = Regularize(input_video, params, name='%s_1'%activation)
 
-        if params['ENCODER_HIDDEN_SIZE'] > 0:
-            encoder = eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
-                                                       W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                       U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                       b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                       dropout_W=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
-                                                       dropout_U=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
-                                                       return_sequences=True,
-                                                       name='encoder_' + params['RNN_TYPE'])(input_video)
-            encoder_back = eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
-                                                       W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                       U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                       b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                       dropout_W=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
-                                                       dropout_U=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
-                                                       return_sequences=True,
-                                                       go_backwards=True,
-                                                       name='encoder_back_' + params['RNN_TYPE'])(input_video)
-        
-        # Affine layer
+        encoder = Bidirectional(eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
+                                                             W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                             U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                             b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                             dropout_W=params['RECURRENT_DROPOUT_P'] if params[
+                                                                 'USE_RECURRENT_DROPOUT'] else None,
+                                                             dropout_U=params['RECURRENT_DROPOUT_P'] if params[
+                                                                 'USE_RECURRENT_DROPOUT'] else None,
+                                                             return_sequences=True),
+                                    name='bidirectional_encoder_' + params['RNN_TYPE'],
+                                    merge_mode='concat')(input_video)
+        input_video = Regularize(encoder, params, name='after_blstm1')
+
+        # Affine layer (not their best model)
+        """
         encoder_back = TimeDistributed(Dense(params['AFFINE_LAYERS_DIM'])
                                        , name='affine_back')(encoder_back)
         encoder = TimeDistributed(Dense(params['AFFINE_LAYERS_DIM'])
@@ -185,7 +176,21 @@ class VideoDesc_Model(Model_Wrapper):
                              output_shape=lambda shape: shape[0],
                              mask_function=lambda x, m: m[0])([encoder_back, encoder])
         input_video = TimeDistributed(Activation('relu'))(input_video)
+        """
 
+        # They alternatively use a double BLSTM encoder
+        input_video = Bidirectional(eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
+                                                         W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                         U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                         b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                         dropout_W=params['RECURRENT_DROPOUT_P'] if params[
+                                                             'USE_RECURRENT_DROPOUT'] else None,
+                                                         dropout_U=params['RECURRENT_DROPOUT_P'] if params[
+                                                             'USE_RECURRENT_DROPOUT'] else None,
+                                                         return_sequences=True),
+                                name='bidirectional_encoder2_' + params['RNN_TYPE'],
+                                merge_mode='concat')(input_video)
+        input_video = Regularize(input_video, params, name='after_blstm2')
 
         # Previously generated words as inputs for training
         next_words = Input(name=self.ids_inputs[1], batch_shape=tuple([None, None]), dtype='int32')
