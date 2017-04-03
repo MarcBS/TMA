@@ -1,35 +1,37 @@
-# ABiViRNet: Attention Bidirectional Video Recurrent Net for video captioning
+# Egocentric Video Description based on Temporally-Linked Sequences 
 
-
-This repository contains the code for building a system similar to the
-one from the work [Video Description using Bidirectional Recurrent Neural Networks](https://arxiv.org/abs/1604.03390), 
-presented at the [International Conference of Artificial Neural Networks (ICANN'16)](http://icann2016.org/). 
-With this module, you can replicate our experiments and easily deploy new models. ABiViRNet is built upon our fork of 
+This repository contains the code for building the Temporally-linked Multi-input Attention (TMA) model, which was presented in
+the work [Egocentric Video Description based on Temporally-Linked Sequences](), 
+submitted to the [Journal of Visual Communication and Image Representation](https://www.journals.elsevier.com/journal-of-visual-communication-and-image-representation). 
+With this module, you can replicate our experiments and easily deploy new models. TMA is built upon our fork of 
 [Keras](https://github.com/MarcBS/keras) framework and tested for the [Theano](http://deeplearning.net/software/theano)
 backend.
 
 ## Features: 
 
- * Attention model over the input sequence of frames
+ * Temporally-linked mechanism for learning using information from previous events.
+ * Multi-input Attention LSTM model over any of the input multimodal sequences.
  * Peeked decoder LSTM: The previously generated word is an input of the current LSTM timestep
  * MLPs for initializing the LSTM hidden and memory state
  * Beam search decoding
 
 ## Architecture
 
-![ICANN_model](./docs/model.png)
+![TMA_model](./docs/model.png)
 
 ## Requirements
 
-ABiViRNet requires the following libraries:
+TMA requires the following libraries:
 
- - [Our version of Keras](https://github.com/MarcBS/keras) v1.2.1
- - [Multimodal Keras Wrapper](https://github.com/MarcBS/multimodal_keras_wrapper) v0.65
+ - [Our version of Keras](https://github.com/MarcBS/keras) >= 1.2.3
+ - [Multimodal Keras Wrapper](https://github.com/MarcBS/multimodal_keras_wrapper) >= 0.7
  - [Coco-caption evaluation package](https://github.com/lvapeab/coco-caption/tree/master/pycocoevalcap/)
 
 ## Instructions:
 
 Assuming you have a dataset and features extracted from the video frames:
+
+0) Set the paths to Keras and Multimodal Keras Wraper in train.sh
  
  1) Prepare data:
  
@@ -62,7 +64,7 @@ See [data_engine/README.md](data_engine/README.md) for detailed information.
 If you use this code for any purpose, please, do not forget to cite the following paper:
 
 ```
-Peris Á, Bolaños M, Radeva P, Casacuberta F. Video Description using Bidirectional Recurrent Neural Networks. arXiv preprint arXiv:1604.03390. 2016 Apr 12.
+ADD CITATION!!!!!
 ```
 
 ## About
@@ -72,6 +74,6 @@ Joint collaboration between the [Computer Vision at the University of Barcelona 
 
 ## Contact
 
-Álvaro Peris ([web page](http://lvapeab.github.io/)): lvapeab@prhlt.upv.es 
-
 Marc Bolaños ([web page](http://www.ub.edu/cvub/marcbolanos/)): marc.bolanos@ub.edu
+
+Álvaro Peris ([web page](http://lvapeab.github.io/)): lvapeab@prhlt.upv.es 

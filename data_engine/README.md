@@ -1,6 +1,6 @@
-# Preprocessing of MSVD dataset
+# Preprocessing of EDUB-SegDesc dataset
 
-The scripts stored in this folder 'data_engine' are intended to preprocess the data from the Microsoft Video Description (MSVD) dataset in order to use them as an input for building a Dataset object instance (see [staged_keras_wrapper](https://github.com/MarcBS/staged_keras_wrapper)).
+The scripts stored in this folder 'data_engine' are intended to preprocess the data from the [EDUB-SegDesc](http://www.ub.edu/cvub/edub-segdesc/) dataset in order to use them as an input for building a Dataset object instance (see [staged_keras_wrapper](https://github.com/MarcBS/staged_keras_wrapper)).
 
 Two different kinds of inputs can be used for training the video description models:
 
