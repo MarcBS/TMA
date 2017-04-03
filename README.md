@@ -59,6 +59,10 @@ See [data_engine/README.md](data_engine/README.md) for detailed information.
  python main.py
  ``
 
+## Dataset
+
+The dataset [EDUB-SegDesc](http://www.ub.edu/cvub/edub-segdesc/) was used to evaluate this model. It was acquired by the wearable camera Narrative Clip, taking a picture every 30 seconds (2 fpm). It consists of 55 days acquired by 9 people. Containing a total of 48,717 images, divided in 1,339 events (or image sequences) and 3,991 captions.
+
 ## Citation
 
 If you use this code for any purpose, please, do not forget to cite the following paper:
