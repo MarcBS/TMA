@@ -17,7 +17,7 @@ backend.
 
 ## Architecture
 
-![TMA_model](./docs/model.pdf)
+![TMA_model](./docs/model.png)
 
 ## Requirements
 
@@ -66,7 +66,8 @@ If you use this code for any purpose, please, do not forget to cite the followin
 ```
 Marc Bolaños, Álvaro Peris, Francisco Casacuberta, Sergi Soler and Petia Radeva.
 Egocentric Video Description based on Temporally-Linked Sequences
-In Special Issue on Egocentric Vision and Lifelogging Tools. Journal of Visual Communication and Image Representation (VCIR), (SUBMITTED).
+In Special Issue on Egocentric Vision and Lifelogging Tools. 
+Journal of Visual Communication and Image Representation (VCIR), (SUBMITTED).
 ```
 
 ## About
