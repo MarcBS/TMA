@@ -1,8 +1,9 @@
 import logging
-import subprocess
 import os
+import subprocess
 import sys
-#sys.path.append("../../") # Adds higher directory to python modules path.
+
+# sys.path.append("../../") # Adds higher directory to python modules path.
 sys.path.insert(1, os.path.abspath("."))
 sys.path.insert(0, os.path.abspath("../../"))
 
@@ -10,14 +11,16 @@ print sys.path
 
 from config import load_parameters
 from main import check_params, train_model
+
 logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s] %(message)s', datefmt='%d/%m/%Y %H:%M:%S')
 logger = logging.getLogger(__name__)
 metric_name = 'Bleu_4'
 maximize = True  # Select whether we want to maximize the metric or minimize it
 d = dict(os.environ.copy())
 d['LC_NUMERIC'] = 'en_US.utf-8'
-def invoke_model(parameters):
 
+
+def invoke_model(parameters):
     model_params = load_parameters()
     model_name = model_params["MODEL_TYPE"]
     for parameter in parameters.keys():
@@ -27,7 +30,9 @@ def invoke_model(parameters):
     model_params["SKIP_VECTORS_HIDDEN_SIZE"] = model_params["TARGET_TEXT_EMBEDDING_SIZE"]
     model_params["MODEL_NAME"] = model_name
     # models and evaluation results will be stored here
-    model_params["STORE_PATH"] = '/home/lvapeab/smt/software/egocentric-video-description/meta-optimizers/spearmint/trained_models/' + model_params["MODEL_NAME"] + '/'
+    model_params[
+        "STORE_PATH"] = '/home/lvapeab/smt/software/egocentric-video-description/meta-optimizers/spearmint/trained_models/' + \
+                        model_params["MODEL_NAME"] + '/'
     check_params(model_params)
     assert model_params['MODE'] == 'training', 'You can only launch Spearmint when training!'
     logging.info('Running training.')
@@ -40,7 +45,8 @@ def invoke_model(parameters):
                      " |awk -v metric=" + metric_name + \
                      " 'BEGIN{FS=\",\"}" \
                      "{for (i=1; i<=NF; i++) if ($i == metric) print i;}'"
-    metric_pos = subprocess.Popen(metric_pos_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True).communicate()[0][:-1]
+    metric_pos = \
+    subprocess.Popen(metric_pos_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True).communicate()[0][:-1]
     cmd = "tail -n +2 " + results_path + \
           " |awk -v m_pos=" + str(metric_pos) + \
           " 'BEGIN{FS=\",\"}{print $m_pos}'|sort -gr|head -n 1"
@@ -54,6 +60,7 @@ def invoke_model(parameters):
 def main(job_id, params):
     print params
     return invoke_model(params)
+
 
 if __name__ == "__main__":
     # Testing function

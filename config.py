@@ -3,7 +3,6 @@ def load_parameters():
         Loads the defined parameters
     """
     # Input data params
-    #DATA_ROOT_PATH = '/media/HDD_2TB/DATASETS/EDUB-SegDesc/'        # Root path to the data
     DATA_ROOT_PATH = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
 
     # preprocessed features
@@ -20,18 +19,13 @@ def load_parameters():
                                                     #    -vidtext-embed
                                                     #
 
-    PRE_TRAINED_DATASET_NAME = None #'MSVD_features'      # Dataset name for reusing vocabulary of pre-trained model (set to None for disabling)
-                                                    # (only applicable if we are using a pre-trained model, default None)
+    PRE_TRAINED_DATASET_NAME = None  #'MSVD_features'     # Dataset name for reusing vocabulary of pre-trained model (set to None for disabling)
+                                                          # (only applicable if we are using a pre-trained model, default None)
     VOCABULARIES_MAPPING = {'description': 'description',
                             'state_below': 'description',
                             'prev_description': 'description'}
 
-    PRE_TRAINED_VOCABULARY_NAME = None #'1BillionWords_vocabulary'      # Dataset name for reusing vocabulary of pre-trained model
-    """
-    VOCABULARIES_MAPPING = {'description': 'target_text',
-                            'state_below': 'target_text',
-                            'prev_description': 'target_text'}
-    """
+    PRE_TRAINED_VOCABULARY_NAME = None  #'1BillionWords_vocabulary'      # Dataset name for reusing vocabulary of pre-trained model
 
     # Input data
     INPUT_DATA_TYPE = 'video-features'                          # 'video-features' or 'video'
@@ -53,10 +47,9 @@ def load_parameters():
                              'val': 'Annotations/%s/val_feat_counts'+suffix_annotations+'.txt',
                              'test': 'Annotations/%s/test_feat_counts'+suffix_annotations+'.txt',
                           }
-    FEATURE_NAMES = ['ImageNet'+suffix_features] # append '_L2' at the end of each feature type if using their L2 version
+    FEATURE_NAMES = ['ImageNet'
+                     + suffix_features] # append '_L2' at the end of each feature type if using their L2 version
 
-    #FEATURE_NAMES = ['ImageNetFV', 'ImageNet', 'Scenes', 'C3D'] # append '_L2' at the end of each feature type if using their L2 version
-    
     # Output data
     DESCRIPTION_FILES = {'train': 'Annotations/train_descriptions'+suffix_annotations+'.txt',                 # Description files
                          'val': 'Annotations/val_descriptions'+suffix_annotations+'.txt',
@@ -145,7 +138,7 @@ def load_parameters():
 
     # Input image parameters
     DATA_AUGMENTATION = False                      # Apply data augmentation on input data (noise on features)
-    DATA_AUGMENTATION_TYPE = ['random_selection'] # 'random_selection', 'noise'
+    DATA_AUGMENTATION_TYPE = ['random_selection']  # 'random_selection', 'noise'
     IMG_FEAT_SIZE = 1024                           # Size of the image features
 
     # Output text parameters
@@ -189,22 +182,22 @@ def load_parameters():
         STOP_METRIC = 'accuracy'
 
     # Model parameters
-    MODEL_TYPE = 'DeepSeek'       # 'ArcticVideoCaptionWithInit'
-                                                    # 'ArcticVideoCaptionNoLSTMEncWithInit'
-                                                    # 'TemporallyLinkedVideoDescriptionNoAtt'
-                                                    # 'TemporallyLinkedVideoDescriptionAtt'
-                                                    # 'TemporallyLinkedVideoDescriptionAttDoublePrev'
-                                                    # 'VideoTextEmbedding'
-                                                    # 'DeepSeek'
+    MODEL_TYPE = 'TemporallyLinkedVideoDescriptionAttDoublePrev'  # 'ArcticVideoCaptionWithInit'
+                                                                  # 'ArcticVideoCaptionNoLSTMEncWithInit'
+                                                                  # 'TemporallyLinkedVideoDescriptionNoAtt'
+                                                                  # 'TemporallyLinkedVideoDescriptionAtt'
+                                                                  # 'TemporallyLinkedVideoDescriptionAttDoublePrev'
+                                                                  # 'VideoTextEmbedding'
+                                                                  # 'DeepSeek'
 
-    RNN_TYPE = 'LSTM'                             # RNN unit type ('LSTM' and 'GRU' supported)
+    RNN_TYPE = 'LSTM'                             # RNN unit type ('LSTM' supported)
 
     # Input text parameters
     TARGET_TEXT_EMBEDDING_SIZE = 301              # Source language word embedding size (ABiViRNet 301)
-    TRG_PRETRAINED_VECTORS = None #'/media/HDD_2TB/DATASETS/cnn_polarity/DATA/word2vec.en.npy' # Path to pretrained vectors. (e.g. DATA_ROOT_PATH + '/DATA/word2vec.%s.npy' % TRG_LAN)
+    TRG_PRETRAINED_VECTORS = None                 # Path to pretrained vectors. (e.g. DATA_ROOT_PATH + '/DATA/word2vec.%s.npy' % TRG_LAN)
                                                   # Set to None if you don't want to use pretrained vectors.
                                                   # When using pretrained word embeddings, the size of the pretrained word embeddings must match with the word embeddings size.
-    TRG_PRETRAINED_VECTORS_TRAINABLE = True      # Finetune or not the target word embedding vectors.
+    TRG_PRETRAINED_VECTORS_TRAINABLE = True       # Finetune or not the target word embedding vectors.
 
     # Encoder configuration
     ENCODER_HIDDEN_SIZE = 717                     # For models with RNN encoder (ABiViRNet 717)
@@ -262,7 +255,7 @@ def load_parameters():
     USE_L2 = False                                # L2 normalization on the features
 
     # Results plot and models storing parameters
-    EXTRA_NAME = '112_finetunning_link_prev_text_MSVD_pre-train_Adadelta_repeat2'                    # This will be appended to the end of the model name
+    EXTRA_NAME = ''                    # This will be appended to the end of the model name
     MODEL_NAME = DATASET_NAME + '_' + MODEL_TYPE +\
                  '_txtemb_' + str(TARGET_TEXT_EMBEDDING_SIZE) + \
                  '_imgemb_' + '_'.join([layer[0] for layer in IMG_EMBEDDING_LAYERS]) + \
@@ -272,16 +265,16 @@ def load_parameters():
                  '_deepout_' + '_'.join([layer[0] for layer in DEEP_OUTPUT_LAYERS]) + \
                  '_' + OPTIMIZER + '_decay_' + str(LR_DECAY) + '-' + str(LR_GAMMA)
 
-    MODEL_NAME += '_'+EXTRA_NAME
+    MODEL_NAME += '_' + EXTRA_NAME
 
     # Name and location of the pre-trained model (only if RELOAD > 0)
     PRE_TRAINED_MODELS = ['MSVD_best_model']
             # default: MODEL_NAME
             # ['EDUB-SegDesc_features-vidtext-embed_VideoTextEmbedding_txtemb_301_imgemb__lstmenc_717_lstm_484_additional_output_mode_sum_deepout__Adadelta_decay_None-0.95_vidtext_classification_BLSTM_text']
-            #['EDUB-SegDesc_features-vidtext-embed_VideoTextEmbedding_txtemb_301_imgemb__lstmenc_717_lstm_484_additional_output_mode_sum_deepout__Adadelta_decay_None-0.95_vidtext_classification']
-            #['EDUB-SegDesc_features-vidtext-embed_VideoTextEmbedding_txtemb_301_imgemb__lstmenc_717_lstm_484_additional_output_mode_sum_deepout__Adam_decay_1-0.95vidtext_embed']
-            #['MSVD_best_model']
-            # #['MSVD_best_model', '1BillionWords']
+            # ['EDUB-SegDesc_features-vidtext-embed_VideoTextEmbedding_txtemb_301_imgemb__lstmenc_717_lstm_484_additional_output_mode_sum_deepout__Adadelta_decay_None-0.95_vidtext_classification']
+            # ['EDUB-SegDesc_features-vidtext-embed_VideoTextEmbedding_txtemb_301_imgemb__lstmenc_717_lstm_484_additional_output_mode_sum_deepout__Adam_decay_1-0.95vidtext_embed']
+            # ['MSVD_best_model']
+            # ['MSVD_best_model', '1BillionWords']
     PRE_TRAINED_MODEL_STORE_PATHS = map(lambda x: 'trained_models/' + x  + '/', PRE_TRAINED_MODELS) if isinstance(PRE_TRAINED_MODELS, list) else 'trained_models/'+PRE_TRAINED_MODELS+'/'
     LOAD_WEIGHTS_ONLY = True                           # Load weights of pre-trained model or complete Model_Wrapper instance
     # Layers' mapping from old to new model if LOAD_WEIGHTS_ONLY
@@ -289,7 +282,6 @@ def load_parameters():
     if '-video' in DATASET_NAME:
         # Pre-train MSVD
         LAYERS_MAPPING = [{'bidirectional_encoder': 'bidirectional_encoder_LSTM',
-                           'bidirectional_encoder': 'prev_desc_emb_bidirectional_encoder_LSTM',
                           'initial_state': 'initial_state',
                           'initial_memory': 'initial_memory',
                           'attlstmcond_1': 'decoder_AttLSTMCond2Inputs',  # 'decoder_AttLSTMCond',
@@ -312,7 +304,6 @@ def load_parameters():
 
     elif '-vidtext-embed' in DATASET_NAME:
         LAYERS_MAPPING = [{'bidirectional_encoder': 'bidirectional_encoder_LSTM',
-                           'bidirectional_encoder': 'prev_desc_emb_bidirectional_encoder_LSTM',
                            'target_word_embedding': 'target_word_embedding',
                            'logit_ctx': 'logit_ctx',
                            }
@@ -332,7 +323,6 @@ def load_parameters():
 
         elif MODEL_TYPE == 'TemporallyLinkedVideoDescriptionAttDoublePrev':
             LAYERS_MAPPING = [{'bidirectional_encoder': 'bidirectional_encoder_LSTM',
-                               'bidirectional_encoder': 'prev_vid_emb_bidirectional_encoder_LSTM',
                                'initial_state': 'initial_state',
                                'initial_memory': 'initial_memory',
                                'attlstmcond_1': 'decoder_AttLSTMCond3Inputs',  # 'decoder_AttLSTMCond',
@@ -376,7 +366,7 @@ def load_parameters():
 
     SAMPLING_SAVE_MODE = 'list'                        # 'list' or 'vqa'
     VERBOSE = 1                                        # Vqerbosity level
-    RELOAD =  0 #[21] # [16] # [2] #[17]   #  [2, 0]                    # If 0 start training from scratch, otherwise the model
+    RELOAD =  0                                        # If 0 start training from scratch, otherwise the model
                                                        # Saved on epoch 'RELOAD' will be used
     REBUILD_DATASET = True                             # Build again or use stored instance
     MODE = 'training'                                  # 'training' or 'sampling' (if 'sampling' then RELOAD must

@@ -1,13 +1,13 @@
 import numpy as np
-from common import create_dir_if_not_exists
 
+from common import create_dir_if_not_exists
 
 ###### Parameters
 
 ROOT_PATH = '/media/HDD_2TB/DATASETS/'
 
-base_path = ROOT_PATH +'/Flickr8k/Features/'
-features = 'KCNN' # KCNN, Scenes, Objects
+base_path = ROOT_PATH + '/Flickr8k/Features/'
+features = 'KCNN'  # KCNN, Scenes, Objects
 base_path_save = base_path + features
 
 feats_paths = ['train_' + features + '_features.csv',
@@ -20,7 +20,6 @@ folders_save = ['train', 'val', 'test']
 apply_L2 = False
 n_feats = 1024
 
-
 ############
 
 if apply_L2:
@@ -30,7 +29,6 @@ else:
 
 
 def csv2npy():
-
     # Process each data split separately
     for n, f, fs in zip(names_lists, feats_paths, folders_save):
         print "Preparing features %s" % f
@@ -46,14 +44,14 @@ def csv2npy():
         with open(base_path + '/' + f, 'r') as file:
             for i, line in enumerate(file):
                 feats = np.fromstring(line.rstrip('\n'), sep=',')
-                if(apply_L2):
-                    feats = feats/np.linalg.norm(feats, ord=2)
+                if (apply_L2):
+                    feats = feats / np.linalg.norm(feats, ord=2)
                 # Insert in dictionary
                 feats_dict[names[i]] = feats[:n_feats]
 
         # Store dict
         print "Saving features in %s" % (base_path_save + '/' + fs + '/' + file_save + '.npy')
-        create_dir_if_not_exists(base_path_save +'/'+ fs)
+        create_dir_if_not_exists(base_path_save + '/' + fs)
         np.save(base_path_save + '/' + fs + '/' + file_save + '.npy', feats_dict)
         print
 

@@ -1,8 +1,10 @@
+import copy
+import logging
+
+import numpy as np
+
 from keras_wrapper.dataset import Dataset, saveDataset, loadDataset
 from keras_wrapper.extra.read_write import pkl2dict
-import copy
-import numpy as np
-import logging
 
 logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s] %(message)s', datefmt='%d/%m/%Y %H:%M:%S')
 
@@ -61,35 +63,35 @@ def build_dataset(params):
         else:
             # Use descriptions as inputs instead --> 'matching'/'non-matching' as output
             ds.setInput(base_path + '/' + params['DESCRIPTION_FILES']['train'],
-                         'train',
-                         type='text',
-                         id=params['INPUTS_IDS_DATASET'][1],
-                         build_vocabulary=True,
-                         tokenization=params['TOKENIZATION_METHOD'],
-                         fill=params['FILL'],
-                         pad_on_batch=True,
-                         max_text_len=params['MAX_OUTPUT_TEXT_LEN'],
-                         min_occ=params['MIN_OCCURRENCES_VOCAB'])
+                        'train',
+                        type='text',
+                        id=params['INPUTS_IDS_DATASET'][1],
+                        build_vocabulary=True,
+                        tokenization=params['TOKENIZATION_METHOD'],
+                        fill=params['FILL'],
+                        pad_on_batch=True,
+                        max_text_len=params['MAX_OUTPUT_TEXT_LEN'],
+                        min_occ=params['MIN_OCCURRENCES_VOCAB'])
 
             ds.setInput(base_path + '/' + params['DESCRIPTION_FILES']['val'],
-                         'val',
-                         type='text',
-                         id=params['INPUTS_IDS_DATASET'][1],
-                         build_vocabulary=True,
-                         pad_on_batch=True,
-                         tokenization=params['TOKENIZATION_METHOD'],
-                         max_text_len=params['MAX_OUTPUT_TEXT_LEN_TEST'],
-                         min_occ=params['MIN_OCCURRENCES_VOCAB'])
+                        'val',
+                        type='text',
+                        id=params['INPUTS_IDS_DATASET'][1],
+                        build_vocabulary=True,
+                        pad_on_batch=True,
+                        tokenization=params['TOKENIZATION_METHOD'],
+                        max_text_len=params['MAX_OUTPUT_TEXT_LEN_TEST'],
+                        min_occ=params['MIN_OCCURRENCES_VOCAB'])
 
             ds.setInput(base_path + '/' + params['DESCRIPTION_FILES']['test'],
-                         'test',
-                         type='text',
-                         id=params['INPUTS_IDS_DATASET'][1],
-                         build_vocabulary=True,
-                         pad_on_batch=True,
-                         tokenization=params['TOKENIZATION_METHOD'],
-                         max_text_len=params['MAX_OUTPUT_TEXT_LEN_TEST'],
-                         min_occ=params['MIN_OCCURRENCES_VOCAB'])
+                        'test',
+                        type='text',
+                        id=params['INPUTS_IDS_DATASET'][1],
+                        build_vocabulary=True,
+                        pad_on_batch=True,
+                        tokenization=params['TOKENIZATION_METHOD'],
+                        max_text_len=params['MAX_OUTPUT_TEXT_LEN_TEST'],
+                        min_occ=params['MIN_OCCURRENCES_VOCAB'])
 
         # INPUT DATA
         # Let's load the associated videos (inputs)
@@ -134,16 +136,16 @@ def build_dataset(params):
             ds.setInput(None, 'val', type='ghost', id=params['INPUTS_IDS_DATASET'][1], required=False)
             ds.setInput(None, 'test', type='ghost', id=params['INPUTS_IDS_DATASET'][1], required=False)
 
-
         # Set inputs for temporally-linked samples
         if not '-vidtext-embed' in params['DATASET_NAME'] and '-linked' in params['DATASET_NAME']:
             # Set input captions from previous event/video
             if '-upperbound' not in params['DATASET_NAME']:
-                if '-vidtext' in params['DATASET_NAME']: # use both previous video and previous description
+                if '-vidtext' in params['DATASET_NAME']:  # use both previous video and previous description
 
                     ds, repeat_images = insertTemporallyLinkedCaptionsVidText(ds, params,
-                                                                              vidtext_set_names={'video': ['train', 'val', 'test'],
-                                                                                                 'text': ['train']})
+                                                                              vidtext_set_names={
+                                                                                  'video': ['train', 'val', 'test'],
+                                                                                  'text': ['train']})
                     del repeat_images['test']
                     del repeat_images['val']
                     # Insert empty prev_descriptions on val and test sets
@@ -210,13 +212,12 @@ def build_dataset(params):
                                                                    params,
                                                                    set_names=['train', 'val', 'test'],
                                                                    upperbound=True,
-                                                                   video= '-video' in params['DATASET_NAME'],
-                                                                   copy= '-copy' in params['DATASET_NAME'],
+                                                                   video='-video' in params['DATASET_NAME'],
+                                                                   copy='-copy' in params['DATASET_NAME'],
                                                                    force_nocopy='-nocopy' in params['DATASET_NAME'],
-                                                                   prev= '-prev' in params['DATASET_NAME'])
+                                                                   prev='-prev' in params['DATASET_NAME'])
                 num_captions_val = repeat_images['val']
                 num_captions_test = repeat_images['test']
-
 
         if not '-vidtext-embed' in params['DATASET_NAME']:
             # Process dataset for keeping only one caption per video and storing the rest in a dict() with the following format:
@@ -225,7 +226,8 @@ def build_dataset(params):
 
         else:
             # Set outputs for -vidtext-embed model
-            insertVidTextEmbedNegativeSamples(ds, params, repeat=[num_captions_train, num_captions_val, num_captions_test])
+            insertVidTextEmbedNegativeSamples(ds, params,
+                                              repeat=[num_captions_train, num_captions_val, num_captions_test])
 
         if not '-vidtext-embed' in params['DATASET_NAME'] and \
                         '-linked' in params['DATASET_NAME'] and \
@@ -251,14 +253,16 @@ def build_dataset(params):
 
     # Load vocabulary-related parameters of dataset used for pre-training
     if params['PRE_TRAINED_DATASET_NAME'] is not None:
-        logging.info('Re-using previous dataset vocabulary '+params['PRE_TRAINED_DATASET_NAME'])
-        dataset_pretrained = loadDataset(params['DATASET_STORE_PATH'] + 'Dataset_' + params['PRE_TRAINED_DATASET_NAME'] + '.pkl')
+        logging.info('Re-using previous dataset vocabulary ' + params['PRE_TRAINED_DATASET_NAME'])
+        dataset_pretrained = loadDataset(
+            params['DATASET_STORE_PATH'] + 'Dataset_' + params['PRE_TRAINED_DATASET_NAME'] + '.pkl')
         for id_new, id_old in params['VOCABULARIES_MAPPING'].iteritems():
             ds.vocabulary[id_new] = copy.deepcopy(dataset_pretrained.vocabulary[id_old])
             ds.vocabulary_len[id_new] = copy.deepcopy(dataset_pretrained.vocabulary_len[id_old])
     elif params['PRE_TRAINED_VOCABULARY_NAME'] is not None:
         logging.info('Re-using previous vocabulary ' + params['PRE_TRAINED_VOCABULARY_NAME'])
-        dataset_pretrained_vocabulary = pkl2dict(params['DATASET_STORE_PATH'] + params['PRE_TRAINED_VOCABULARY_NAME'] + '.pkl')
+        dataset_pretrained_vocabulary = pkl2dict(
+            params['DATASET_STORE_PATH'] + params['PRE_TRAINED_VOCABULARY_NAME'] + '.pkl')
         for id_new, id_old in params['VOCABULARIES_MAPPING'].iteritems():
             ds.vocabulary[id_new] = copy.deepcopy(dataset_pretrained_vocabulary[id_old])
             ds.vocabulary_len[id_new] = len(dataset_pretrained_vocabulary[id_old]['idx2words'])
@@ -375,7 +379,8 @@ def insertTemporallyLinkedCaptions(ds, params, set_names=['train'],
                 list_files = base_path + '/' + params['FRAMES_LIST_FILES'][s] % feat_type
                 counts_files = base_path + '/' + params['FRAMES_COUNTS_FILES'][s] % feat_type
                 with open(list_files, 'r') as f_outs, open(counts_files, 'r') as f_outs_counts:
-                    prev_videos.append([[line.strip() for line in f_outs], [int(line.strip()) for line in f_outs_counts]])
+                    prev_videos.append(
+                        [[line.strip() for line in f_outs], [int(line.strip()) for line in f_outs_counts]])
 
         # modify outputs and prepare inputs
         images_repeat = []
@@ -418,16 +423,16 @@ def insertTemporallyLinkedCaptions(ds, params, set_names=['train'],
                 elif force_nocopy:
                     raise NotImplementedError()
                     prev_outputs = these_outputs
-                    images_repeat.append(num_cap[i] * (num_cap[i]-1))
+                    images_repeat.append(num_cap[i] * (num_cap[i] - 1))
                     for n in range(num_cap[i]):
-                        upperbound_images_repeat.append(num_cap[i]-1)
+                        upperbound_images_repeat.append(num_cap[i] - 1)
                         for nthese, out in enumerate(these_outputs):
                             if nthese != n:
                                 final_outputs.append(out)
                                 final_inputs.append(prev_outputs[n])
                 else:
                     prev_outputs = these_outputs
-                    images_repeat.append(num_cap[i]*num_cap[i])
+                    images_repeat.append(num_cap[i] * num_cap[i])
                     for n in range(num_cap[i]):
                         upperbound_images_repeat.append(num_cap[i])
                         for out in these_outputs:
@@ -452,7 +457,7 @@ def insertTemporallyLinkedCaptions(ds, params, set_names=['train'],
                             else:
                                 init_frame = 0
                             this_count = prev_videos[ifeat][1][link]
-                            final_inputs[feat_type][0] += prev_videos[ifeat][0][init_frame:init_frame+this_count]
+                            final_inputs[feat_type][0] += prev_videos[ifeat][0][init_frame:init_frame + this_count]
                             final_inputs[feat_type][1] += [this_count]
                 else:
                     # first sample in the temporally-linked sequence
@@ -519,14 +524,14 @@ def insertTemporallyLinkedCaptions(ds, params, set_names=['train'],
         if video:
             for feat_type in params['FEATURE_NAMES']:
                 ds.setInput(final_inputs[feat_type],
-                        s,
-                        type=params['INPUT_DATA_TYPE'],
-                        id=params['INPUTS_IDS_DATASET'][2],
-                        repeat_set=images_repeat,
-                        max_video_len=params['NUM_FRAMES'],
-                        feat_len=params['IMG_FEAT_SIZE'],
-                        overwrite_split=True,
-                        data_augmentation_types=params['DATA_AUGMENTATION_TYPE'])
+                            s,
+                            type=params['INPUT_DATA_TYPE'],
+                            id=params['INPUTS_IDS_DATASET'][2],
+                            repeat_set=images_repeat,
+                            max_video_len=params['NUM_FRAMES'],
+                            feat_len=params['IMG_FEAT_SIZE'],
+                            overwrite_split=True,
+                            data_augmentation_types=params['DATA_AUGMENTATION_TYPE'])
         else:
             # Set new input captions from previous temporally-linked event/video
             ds.setInput(final_inputs,
@@ -571,7 +576,7 @@ def insertTemporallyLinkedCaptionsVidText(ds, params, vidtext_set_names={'video'
     base_path = params['DATA_ROOT_PATH']
     repeat_images = dict()
 
-    set_names = set(vidtext_set_names['video']+vidtext_set_names['text'])
+    set_names = set(vidtext_set_names['video'] + vidtext_set_names['text'])
     for s in set_names:
         # retrieve number of output captions per sample
         num_cap = np.load(base_path + '/' + params['DESCRIPTION_COUNTS_FILES'][s])
@@ -594,7 +599,8 @@ def insertTemporallyLinkedCaptionsVidText(ds, params, vidtext_set_names={'video'
                 list_files = base_path + '/' + params['FRAMES_LIST_FILES'][s] % feat_type
                 counts_files = base_path + '/' + params['FRAMES_COUNTS_FILES'][s] % feat_type
                 with open(list_files, 'r') as f_outs, open(counts_files, 'r') as f_outs_counts:
-                    prev_videos.append([[line.strip() for line in f_outs], [int(line.strip()) for line in f_outs_counts]])
+                    prev_videos.append(
+                        [[line.strip() for line in f_outs], [int(line.strip()) for line in f_outs_counts]])
 
         # modify outputs and prepare inputs
         images_repeat = []
@@ -604,7 +610,6 @@ def insertTemporallyLinkedCaptionsVidText(ds, params, vidtext_set_names={'video'
             for feat_type in params['FEATURE_NAMES']:
                 final_inputs_vid[feat_type] = [[], []]
         final_inputs_txt = []
-
 
         for i, link in enumerate(links):
             ini_out = np.sum(num_cap[:i])
@@ -639,7 +644,7 @@ def insertTemporallyLinkedCaptionsVidText(ds, params, vidtext_set_names={'video'
                         else:
                             init_frame = 0
                         this_count = prev_videos[ifeat][1][link]
-                        final_inputs_vid[feat_type][0] += prev_videos[ifeat][0][init_frame:init_frame+this_count]
+                        final_inputs_vid[feat_type][0] += prev_videos[ifeat][0][init_frame:init_frame + this_count]
                         final_inputs_vid[feat_type][1] += [this_count]
 
                 # text only
@@ -664,7 +669,6 @@ def insertTemporallyLinkedCaptionsVidText(ds, params, vidtext_set_names={'video'
                         this_count = prev_videos[ifeat][1][link]
                         final_inputs_vid[feat_type][0] += prev_videos[ifeat][0][init_frame:init_frame + this_count]
                         final_inputs_vid[feat_type][1] += [this_count]
-
 
         # Overwrite input images assigning the new repeat pattern
         for feat_type in params['FEATURE_NAMES']:
@@ -716,14 +720,14 @@ def insertTemporallyLinkedCaptionsVidText(ds, params, vidtext_set_names={'video'
         if s in vidtext_set_names['video']:
             for feat_type in params['FEATURE_NAMES']:
                 ds.setInput(final_inputs_vid[feat_type],
-                        s,
-                        type=params['INPUT_DATA_TYPE'],
-                        id=params['INPUTS_IDS_DATASET'][3],
-                        repeat_set=images_repeat,
-                        max_video_len=params['NUM_FRAMES'],
-                        feat_len=params['IMG_FEAT_SIZE'],
-                        overwrite_split=True,
-                        data_augmentation_types=params['DATA_AUGMENTATION_TYPE'])
+                            s,
+                            type=params['INPUT_DATA_TYPE'],
+                            id=params['INPUTS_IDS_DATASET'][3],
+                            repeat_set=images_repeat,
+                            max_video_len=params['NUM_FRAMES'],
+                            feat_len=params['IMG_FEAT_SIZE'],
+                            overwrite_split=True,
+                            data_augmentation_types=params['DATA_AUGMENTATION_TYPE'])
 
         if s in vidtext_set_names['text']:
             # Set new input captions from previous temporally-linked event/video
@@ -754,13 +758,13 @@ def insertVidTextEmbedNegativeSamples(ds, params, repeat):
     :param repeat: number of times each video was repeated
     """
 
-    for s,r in zip(['train', 'val', 'test'], repeat):
+    for s, r in zip(['train', 'val', 'test'], repeat):
 
         # Get data from dataset
         X = None
         num_samples = 0
-        exec('num_samples = ds.len_'+s)
-        exec('X = ds.X_'+s)
+        exec ('num_samples = ds.len_' + s)
+        exec ('X = ds.X_' + s)
 
         video_indices = X[params['INPUTS_IDS_DATASET'][0]]
         descriptions = X[params['INPUTS_IDS_DATASET'][1]]
@@ -771,7 +775,6 @@ def insertVidTextEmbedNegativeSamples(ds, params, repeat):
         # Let's generate some random video-description pairs
         negative_videos = np.random.choice(video_indices, num_samples, replace=True)
         for neg_id in negative_videos:
-
             # Insert index of repeated video (now as negative sample)
             video_indices.append(neg_id)
 
@@ -782,20 +785,16 @@ def insertVidTextEmbedNegativeSamples(ds, params, repeat):
             # Insert description of negative sample
             descriptions.append(descriptions[desc_id])
 
-
         # Re-insert videos and descriptions, including new length
-        exec('ds.X_'+s+'["'+ params['INPUTS_IDS_DATASET'][0] +'"] = video_indices')
-        exec('ds.X_'+s+'["'+ params['INPUTS_IDS_DATASET'][1] +'"] = descriptions')
-        exec('ds.len_'+s+' = num_samples*2')
-
+        exec ('ds.X_' + s + '["' + params['INPUTS_IDS_DATASET'][0] + '"] = video_indices')
+        exec ('ds.X_' + s + '["' + params['INPUTS_IDS_DATASET'][1] + '"] = descriptions')
+        exec ('ds.len_' + s + ' = num_samples*2')
 
         # Insert output, which consists in 'matching'/'non-matching labels'
-        matches = [1 for i in range(num_samples)]+[0 for i in range(num_samples)]
+        matches = [1 for i in range(num_samples)] + [0 for i in range(num_samples)]
         ds.setOutput(matches,
-                    s,
-                    type='categorical',
-                    id=params['OUTPUTS_IDS_DATASET'][0])
+                     s,
+                     type='categorical',
+                     id=params['OUTPUTS_IDS_DATASET'][0])
 
     ds.setClasses(['matching', 'non-matching'], id=params['OUTPUTS_IDS_DATASET'][0])
-
-

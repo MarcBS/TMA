@@ -1,9 +1,9 @@
 # coding=utf-8
 
 import json
-import re
 import os
-import numpy as np
+import re
+
 from toolz import itemmap
 
 from keras.optimizers import Adadelta
@@ -12,23 +12,24 @@ from keras.optimizers import Adam
 from keras.optimizers import RMSprop
 from keras.optimizers import SGD
 
-
 PADDING = '<pad>'
 UNKNOWN = 'UNK'
-EOA = '<eos>'       # end of answer
-EOQ = '<eoq>'       # end of question
+EOA = '<eos>'  # end of answer
+EOQ = '<eoq>'  # end of question
 EXTRA_WORDS_NAMES = [PADDING, UNKNOWN, EOA, EOQ]
-EXTRA_WORDS = {PADDING:0, UNKNOWN:1, EOA:2, EOQ:3}
+EXTRA_WORDS = {PADDING: 0, UNKNOWN: 1, EOA: 2, EOQ: 3}
 EXTRA_WORDS_ID = itemmap(reversed, EXTRA_WORDS)
 MAXLEN = 50
 
 OPTIMIZERS = { \
-        'sgd':SGD,
-        'adagrad':Adagrad,
-        'adadelta':Adadelta,
-        'rmsprop':RMSprop,
-        'adam':Adam,
-        }
+    'sgd': SGD,
+    'adagrad': Adagrad,
+    'adadelta': Adadelta,
+    'rmsprop': RMSprop,
+    'adam': Adam,
+}
+
+
 ###
 # Functions
 ###
@@ -37,6 +38,7 @@ def static_vars(**kwargs):
         for k in kwargs:
             setattr(func, k, kwargs[k])
         return func
+
     return decorate
 
 
@@ -52,20 +54,22 @@ def _myinc(d):
 
 def create_dir_if_not_exists(directory):
     if not os.path.exists(directory):
-        print 'creating directory %s'%directory
+        print 'creating directory %s' % directory
         os.makedirs(directory)
     else:
-        print "%s already exists!"%directory
+        print "%s already exists!" % directory
+
 
 def preprocess_line(line):
     cap_tmp = line.strip().decode('utf-8').lower().encode('utf8')
     return cap_tmp
 
-def preprocess_caption(cap):
 
+def preprocess_caption(cap):
     commaStrip = re.compile("(\d)(\,)(\d)")
     punct = [';', r"/", '[', ']', '"', '{', '}', '(', ')', '=', '+', '\\', '_', '-', '>', '<', '@', '`', ',', '?', '!']
     periodStrip = re.compile("(?!<=\d)(\.)(?!\d)")
+
     def processPunctuation(inText):
         outText = inText
         for p in punct:
@@ -89,8 +93,10 @@ def preprocess_question(q):
                     "hes": "he’s", "howd": "how’d", "howll": "how’ll", "hows": "how’s", "Id’ve": "I’d’ve",
                     "I’dve": "I’d’ve", "Im": "I’m", "Ive": "I’ve", "isnt": "isn’t", "itd": "it’d", "itd’ve": "it’d’ve",
                     "it’dve": "it’d’ve", "itll": "it’ll", "let’s": "let’s", "maam": "ma’am", "mightnt": "mightn’t",
-                    "mightnt’ve": "mightn’t’ve", "mightn’tve": "mightn’t’ve", "mightve": "might’ve", "mustnt": "mustn’t",
-                    "mustve": "must’ve", "neednt": "needn’t", "notve": "not’ve", "oclock": "o’clock", "oughtnt": "oughtn’t",
+                    "mightnt’ve": "mightn’t’ve", "mightn’tve": "mightn’t’ve", "mightve": "might’ve",
+                    "mustnt": "mustn’t",
+                    "mustve": "must’ve", "neednt": "needn’t", "notve": "not’ve", "oclock": "o’clock",
+                    "oughtnt": "oughtn’t",
                     "ow’s’at": "’ow’s’at", "’ows’at": "’ow’s’at", "’ow’sat": "’ow’s’at", "shant": "shan’t",
                     "shed’ve": "she’d’ve", "she’dve": "she’d’ve", "she’s": "she’s", "shouldve": "should’ve",
                     "shouldnt": "shouldn’t", "shouldnt’ve": "shouldn’t’ve", "shouldn’tve": "shouldn’t’ve",
@@ -108,7 +114,8 @@ def preprocess_question(q):
                     "who’dve": "who’d’ve", "wholl": "who’ll", "whos": "who’s", "whove": "who've", "whyll": "why’ll",
                     "whyre": "why’re", "whys": "why’s", "wont": "won’t", "wouldve": "would’ve", "wouldnt": "wouldn’t",
                     "wouldnt’ve": "wouldn’t’ve", "wouldn’tve": "wouldn’t’ve", "yall": "y’all", "yall’ll": "y’all’ll",
-                    "y’allll": "y’all’ll", "yall’d’ve": "y’all’d’ve", "y’alld’ve": "y’all’d’ve", "y’all’dve": "y’all’d’ve",
+                    "y’allll": "y’all’ll", "yall’d’ve": "y’all’d’ve", "y’alld’ve": "y’all’d’ve",
+                    "y’all’dve": "y’all’d’ve",
                     "youd": "you’d", "youd’ve": "you’d’ve", "you’dve": "you’d’ve", "youll": "you’ll",
                     "youre": "you’re", "youve": "you’ve"}
     manualMap = {'none': '0', 'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4', 'five': '5', 'six': '6',
@@ -117,6 +124,7 @@ def preprocess_question(q):
     commaStrip = re.compile("(\d)(\,)(\d)")
     punct = [';', r"/", '[', ']', '"', '{', '}', '(', ')', '=', '+', '\\', '_', '-', '>', '<', '@', '`', ',', '?', '!']
     periodStrip = re.compile("(?!<=\d)(\.)(?!\d)")
+
     def processPunctuation(inText):
         outText = inText
         for p in punct:
@@ -143,8 +151,8 @@ def preprocess_question(q):
         return outText
 
     q_tmp = q.strip().lower().encode('utf8')
-    #q_tmp = processPunctuation(q_tmp)
-    #q_tmp = processDigitArticle(q_tmp)
+    # q_tmp = processPunctuation(q_tmp)
+    # q_tmp = processDigitArticle(q_tmp)
     if q_tmp[-1] == '?' and q_tmp[-2] != ' ':
         # separate word token from the question mark
         q_tmp = q_tmp[:-1] + ' ?'
@@ -154,15 +162,17 @@ def preprocess_question(q):
 
 
 def save_txt_answers(samples, savefile='./sample', whichset='val', step=''):
-        with open(savefile + '_' + whichset + '_samples_' + str(step) + '.json', 'w') as f:
-            print >>f, '\n'.join(samples)
+    with open(savefile + '_' + whichset + '_samples_' + str(step) + '.json', 'w') as f:
+        print >> f, '\n'.join(samples)
 
 
 def save_json_answers(samples, savefile='./sample', whichset='val', step=''):
-        with open(savefile + '_' + whichset + '_samples_' + str(step) + '.json', 'w') as f:
-            json.dump(samples, f)
+    with open(savefile + '_' + whichset + '_samples_' + str(step) + '.json', 'w') as f:
+        json.dump(samples, f)
+
+
 def build_vocabulary(this_wordcount, extra_words=EXTRA_WORDS,
-        is_reset=True, truncate_to_most_frequent=0):
+                     is_reset=True, truncate_to_most_frequent=0):
     """
     Builds vocabulary from wordcount.
     It also adds extra words to the vocabulary.
@@ -182,14 +192,14 @@ def build_vocabulary(this_wordcount, extra_words=EXTRA_WORDS,
         index2word - mapping from indices to words
     """
     if is_reset:
-        _myinc.counter=len(EXTRA_WORDS)
+        _myinc.counter = len(EXTRA_WORDS)
     if truncate_to_most_frequent > 0:
         sorted_wordcount = dict(sorted(
-                this_wordcount.items(), key=lambda x:x[1], reverse=True)[:truncate_to_most_frequent])
+            this_wordcount.items(), key=lambda x: x[1], reverse=True)[:truncate_to_most_frequent])
         this_wordcount = sorted_wordcount
     word2index = itemmap(_myinc, this_wordcount)
     if not extra_words == {}:
-        assert(all([el not in word2index.values() for el in extra_words.values()]))
+        assert (all([el not in word2index.values() for el in extra_words.values()]))
         word2index.update(extra_words)
     index2word = itemmap(reversed, word2index)
     return word2index, index2word
@@ -212,9 +222,10 @@ def index_sequence(x, word2index):
         line_list = []
         for w in line.split():
             w = w.strip()
-            if w in word2index: this_ind = word2index[w]
-            else: this_ind = word2index[UNKNOWN]
+            if w in word2index:
+                this_ind = word2index[w]
+            else:
+                this_ind = word2index[UNKNOWN]
             line_list.append(this_ind)
         one_hot_x.append(line_list)
     return one_hot_x
-

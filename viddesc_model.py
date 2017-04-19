@@ -1,16 +1,14 @@
-from keras.engine import Input
-from keras.layers import *
-from keras.models import model_from_json, Model
-from keras.optimizers import Adam, RMSprop, Nadam, Adadelta, SGD
-from keras.regularizers import l2
-from keras import backend as K
-
-from keras_wrapper.cnn_model import Model_Wrapper
-from keras_wrapper.extra.regularize import Regularize
+import logging
+import os
 
 import numpy as np
-import os
-import logging
+
+from keras import backend as K
+from keras.layers import *
+from keras.models import model_from_json, Model
+from keras.regularizers import l2
+from keras_wrapper.cnn_model import Model_Wrapper
+from keras_wrapper.extra.regularize import Regularize
 
 
 class VideoDesc_Model(Model_Wrapper):
@@ -83,10 +81,10 @@ class VideoDesc_Model(Model_Wrapper):
             # Build model from scratch
             if hasattr(self, type):
                 if self.verbose > 0:
-                    logging.info("<<< Building '"+ type +"' Video Captioning Model >>>")
+                    logging.info("<<< Building '" + type + "' Video Captioning Model >>>")
                 eval('self.' + type + '(params)')
             else:
-                raise Exception('Video_Captioning_Model type "'+ type +'" is not implemented.')
+                raise Exception('Video_Captioning_Model type "' + type + '" is not implemented.')
 
         # Load weights from file
         if weights_path:
@@ -112,7 +110,8 @@ class VideoDesc_Model(Model_Wrapper):
                                                  clipnorm=self.params['CLIP_C'],
                                                  loss=self.params['LOSS'],
                                                  optimizer=self.params['OPTIMIZER'],
-                                                 sample_weight_mode='temporal' if self.params.get('SAMPLE_WEIGHTS', False) else None)
+                                                 sample_weight_mode='temporal' if self.params.get('SAMPLE_WEIGHTS',
+                                                                                                  False) else None)
 
     def __str__(self):
         """
@@ -154,16 +153,16 @@ class VideoDesc_Model(Model_Wrapper):
         ##################################################################
 
         encoder = Bidirectional(eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
-                                                             W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                             U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                             b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                             dropout_W=params['RECURRENT_DROPOUT_P'] if params[
-                                                                 'USE_RECURRENT_DROPOUT'] else None,
-                                                             dropout_U=params['RECURRENT_DROPOUT_P'] if params[
-                                                                 'USE_RECURRENT_DROPOUT'] else None,
-                                                             return_sequences=True),
-                                    name='bidirectional_encoder_' + params['RNN_TYPE'],
-                                    merge_mode='concat')(input_video)
+                                                         W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                         U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                         b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                         dropout_W=params['RECURRENT_DROPOUT_P'] if params[
+                                                             'USE_RECURRENT_DROPOUT'] else None,
+                                                         dropout_U=params['RECURRENT_DROPOUT_P'] if params[
+                                                             'USE_RECURRENT_DROPOUT'] else None,
+                                                         return_sequences=True),
+                                name='bidirectional_encoder_' + params['RNN_TYPE'],
+                                merge_mode='concat')(input_video)
         input_video = Regularize(encoder, params, name='after_blstm1')
 
         # Affine layer (not their best model)
@@ -180,16 +179,16 @@ class VideoDesc_Model(Model_Wrapper):
 
         # They alternatively use a double BLSTM encoder
         input_video = Bidirectional(eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
-                                                         W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                         U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                         b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                         dropout_W=params['RECURRENT_DROPOUT_P'] if params[
-                                                             'USE_RECURRENT_DROPOUT'] else None,
-                                                         dropout_U=params['RECURRENT_DROPOUT_P'] if params[
-                                                             'USE_RECURRENT_DROPOUT'] else None,
-                                                         return_sequences=True),
-                                name='bidirectional_encoder2_' + params['RNN_TYPE'],
-                                merge_mode='concat')(input_video)
+                                                             W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                             U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                             b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                             dropout_W=params['RECURRENT_DROPOUT_P'] if params[
+                                                                 'USE_RECURRENT_DROPOUT'] else None,
+                                                             dropout_U=params['RECURRENT_DROPOUT_P'] if params[
+                                                                 'USE_RECURRENT_DROPOUT'] else None,
+                                                             return_sequences=True),
+                                    name='bidirectional_encoder2_' + params['RNN_TYPE'],
+                                    merge_mode='concat')(input_video)
         input_video = Regularize(input_video, params, name='after_blstm2')
 
         # Previously generated words as inputs for training
@@ -203,15 +202,13 @@ class VideoDesc_Model(Model_Wrapper):
                         mask_zero=True)(next_words)
         emb = Regularize(emb, params, name='target_word_embedding')
 
-        
         # LSTM initialization perceptrons with ctx mean
         # 3.2. Decoder's RNN initialization perceptrons with ctx mean
         ctx_mean = Lambda(lambda x: K.mean(x, axis=1),
                           output_shape=lambda s: (s[0], s[2]), name='lambda_mean')(input_video)
-        
-        
+
         if len(params['INIT_LAYERS']) > 0:
-            for n_layer_init in range(len(params['INIT_LAYERS'])-1):
+            for n_layer_init in range(len(params['INIT_LAYERS']) - 1):
                 ctx_mean = Dense(params['DECODER_HIDDEN_SIZE'], name='init_layer_%d' % n_layer_init,
                                  W_regularizer=l2(params['WEIGHT_DECAY']),
                                  activation=params['INIT_LAYERS'][n_layer_init]
@@ -239,14 +236,16 @@ class VideoDesc_Model(Model_Wrapper):
         ##################################################################
 
         # 3.3. LSTM decoder
-        sharedRNN = eval(params['RNN_TYPE']+'Cond')(params['DECODER_HIDDEN_SIZE'],
-                                                                     W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                     U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                     b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                     dropout_W=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
-                                                                     dropout_U=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
-                                                                     return_sequences=True,
-                                                                     name='decoder_' + params['RNN_TYPE']+'Cond')
+        sharedRNN = eval(params['RNN_TYPE'] + 'Cond')(params['DECODER_HIDDEN_SIZE'],
+                                                      W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                      U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                      b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                      dropout_W=params['RECURRENT_DROPOUT_P'] if params[
+                                                          'USE_RECURRENT_DROPOUT'] else None,
+                                                      dropout_U=params['RECURRENT_DROPOUT_P'] if params[
+                                                          'USE_RECURRENT_DROPOUT'] else None,
+                                                      return_sequences=True,
+                                                      name='decoder_' + params['RNN_TYPE'] + 'Cond')
 
         proj_h = sharedRNN(input_attentional_decoder)
 
@@ -260,7 +259,6 @@ class VideoDesc_Model(Model_Wrapper):
         softout = shared_FC_soft(proj_h)
 
         self.model = Model(input=[video, next_words], output=softout)
-
 
     def ArcticVideoCaptionWithInit(self, params):
         """
@@ -282,9 +280,9 @@ class VideoDesc_Model(Model_Wrapper):
         #                       ENCODER
         ##################################################################
         for activation, dimension in params['IMG_EMBEDDING_LAYERS']:
-            input_video = TimeDistributed(Dense(dimension, name='%s_1'%activation, activation=activation,
-                                               W_regularizer=l2(params['WEIGHT_DECAY'])))(input_video)
-            input_video = Regularize(input_video, params, name='%s_1'%activation)
+            input_video = TimeDistributed(Dense(dimension, name='%s_1' % activation, activation=activation,
+                                                W_regularizer=l2(params['WEIGHT_DECAY'])))(input_video)
+            input_video = Regularize(input_video, params, name='%s_1' % activation)
 
         if params['ENCODER_HIDDEN_SIZE'] > 0:
             if params['BIDIRECTIONAL_ENCODER']:
@@ -292,20 +290,24 @@ class VideoDesc_Model(Model_Wrapper):
                                                                  W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
                                                                  U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
                                                                  b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                 dropout_W=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
-                                                                 dropout_U=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
+                                                                 dropout_W=params['RECURRENT_DROPOUT_P'] if params[
+                                                                     'USE_RECURRENT_DROPOUT'] else None,
+                                                                 dropout_U=params['RECURRENT_DROPOUT_P'] if params[
+                                                                     'USE_RECURRENT_DROPOUT'] else None,
                                                                  return_sequences=True),
                                         name='bidirectional_encoder_' + params['RNN_TYPE'],
                                         merge_mode='concat')(input_video)
             else:
                 encoder = eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
-                                                       W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                       U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                       b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                       dropout_W=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
-                                                       dropout_U=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
-                                                       return_sequences=True,
-                                                       name='encoder_' + params['RNN_TYPE'])(input_video)
+                                                   W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                   U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                   b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                   dropout_W=params['RECURRENT_DROPOUT_P'] if params[
+                                                       'USE_RECURRENT_DROPOUT'] else None,
+                                                   dropout_U=params['RECURRENT_DROPOUT_P'] if params[
+                                                       'USE_RECURRENT_DROPOUT'] else None,
+                                                   return_sequences=True,
+                                                   name='encoder_' + params['RNN_TYPE'])(input_video)
             input_video = merge([input_video, encoder], mode='concat', concat_axis=2)
             input_video = Regularize(input_video, params, name='input_video')
 
@@ -313,24 +315,33 @@ class VideoDesc_Model(Model_Wrapper):
             for n_layer in range(1, params['N_LAYERS_ENCODER']):
                 if params['BIDIRECTIONAL_DEEP_ENCODER']:
                     current_input_video = Bidirectional(eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
-                                                                             W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                             U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                             b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                             dropout_W=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
-                                                                             dropout_U=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
-                                                                             return_sequences=True,
-                                                                             ),
-                                                    merge_mode='concat',
-                                                    name='bidirectional_encoder_' + str(n_layer))(input_video)
+                                                                                 W_regularizer=l2(
+                                                                                     params['RECURRENT_WEIGHT_DECAY']),
+                                                                                 U_regularizer=l2(
+                                                                                     params['RECURRENT_WEIGHT_DECAY']),
+                                                                                 b_regularizer=l2(
+                                                                                     params['RECURRENT_WEIGHT_DECAY']),
+                                                                                 dropout_W=params[
+                                                                                     'RECURRENT_DROPOUT_P'] if params[
+                                                                                     'USE_RECURRENT_DROPOUT'] else None,
+                                                                                 dropout_U=params[
+                                                                                     'RECURRENT_DROPOUT_P'] if params[
+                                                                                     'USE_RECURRENT_DROPOUT'] else None,
+                                                                                 return_sequences=True,
+                                                                                 ),
+                                                        merge_mode='concat',
+                                                        name='bidirectional_encoder_' + str(n_layer))(input_video)
                 else:
                     current_input_video = eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
-                                                           W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                           U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                           b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                           dropout_W=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
-                                                           dropout_U=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
-                                                           return_sequences=True,
-                                                           name='encoder_' + str(n_layer))(input_video)
+                                                                   W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                   U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                   b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                   dropout_W=params['RECURRENT_DROPOUT_P'] if params[
+                                                                       'USE_RECURRENT_DROPOUT'] else None,
+                                                                   dropout_U=params['RECURRENT_DROPOUT_P'] if params[
+                                                                       'USE_RECURRENT_DROPOUT'] else None,
+                                                                   return_sequences=True,
+                                                                   name='encoder_' + str(n_layer))(input_video)
 
                 current_input_video = Regularize(current_input_video, params, name='input_video_' + str(n_layer))
                 input_video = merge([input_video, current_input_video], mode='sum')
@@ -352,7 +363,7 @@ class VideoDesc_Model(Model_Wrapper):
                           output_shape=lambda s: (s[0], s[2]), name='lambda_mean')(input_video)
 
         if len(params['INIT_LAYERS']) > 0:
-            for n_layer_init in range(len(params['INIT_LAYERS'])-1):
+            for n_layer_init in range(len(params['INIT_LAYERS']) - 1):
                 ctx_mean = Dense(params['DECODER_HIDDEN_SIZE'], name='init_layer_%d' % n_layer_init,
                                  W_regularizer=l2(params['WEIGHT_DECAY']),
                                  activation=params['INIT_LAYERS'][n_layer_init]
@@ -388,12 +399,18 @@ class VideoDesc_Model(Model_Wrapper):
                                                                      Wa_regularizer=l2(params['WEIGHT_DECAY']),
                                                                      Ua_regularizer=l2(params['WEIGHT_DECAY']),
                                                                      ba_regularizer=l2(params['WEIGHT_DECAY']),
-                                                                     dropout_W=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
-                                                                     dropout_U=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
-                                                                     dropout_V=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
-                                                                     dropout_wa=params['DROPOUT_P'] if params['USE_DROPOUT'] else None,
-                                                                     dropout_Wa=params['DROPOUT_P'] if params['USE_DROPOUT'] else None,
-                                                                     dropout_Ua=params['DROPOUT_P'] if params['USE_DROPOUT'] else None,
+                                                                     dropout_W=params['RECURRENT_DROPOUT_P'] if params[
+                                                                         'USE_RECURRENT_DROPOUT'] else None,
+                                                                     dropout_U=params['RECURRENT_DROPOUT_P'] if params[
+                                                                         'USE_RECURRENT_DROPOUT'] else None,
+                                                                     dropout_V=params['RECURRENT_DROPOUT_P'] if params[
+                                                                         'USE_RECURRENT_DROPOUT'] else None,
+                                                                     dropout_wa=params['DROPOUT_P'] if params[
+                                                                         'USE_DROPOUT'] else None,
+                                                                     dropout_Wa=params['DROPOUT_P'] if params[
+                                                                         'USE_DROPOUT'] else None,
+                                                                     dropout_Ua=params['DROPOUT_P'] if params[
+                                                                         'USE_DROPOUT'] else None,
                                                                      return_sequences=True,
                                                                      return_extra_variables=True,
                                                                      return_states=True,
@@ -423,8 +440,8 @@ class VideoDesc_Model(Model_Wrapper):
         shared_Lambda_Permute = PermuteGeneral((1, 0, 2))
         out_layer_ctx = shared_Lambda_Permute(out_layer_ctx)
         shared_FC_emb = TimeDistributed(Dense(params['SKIP_VECTORS_HIDDEN_SIZE'],
-                                        W_regularizer=l2(params['WEIGHT_DECAY']),
-                                        activation='linear'),
+                                              W_regularizer=l2(params['WEIGHT_DECAY']),
+                                              activation='linear'),
                                         name='logit_emb')
         out_layer_emb = shared_FC_emb(emb)
 
@@ -435,7 +452,8 @@ class VideoDesc_Model(Model_Wrapper):
         [out_layer_emb, shared_reg_out_layer_emb] = Regularize(out_layer_emb, params,
                                                                shared_layers=True, name='out_layer_emb')
 
-        additional_output = merge([out_layer_mlp, out_layer_ctx, out_layer_emb], mode=params['ADDITIONAL_OUTPUT_MERGE_MODE'], name='additional_input')
+        additional_output = merge([out_layer_mlp, out_layer_ctx, out_layer_emb],
+                                  mode=params['ADDITIONAL_OUTPUT_MERGE_MODE'], name='additional_input')
         shared_activation_tanh = Activation('tanh')
 
         out_layer = shared_activation_tanh(additional_output)
@@ -451,10 +469,11 @@ class VideoDesc_Model(Model_Wrapper):
             else:
                 shared_deep_list.append(TimeDistributed(Dense(dimension, activation=activation,
                                                               W_regularizer=l2(params['WEIGHT_DECAY'])),
-                                                        name=activation+'_%d' % i))
+                                                        name=activation + '_%d' % i))
             out_layer = shared_deep_list[-1](out_layer)
             [out_layer, shared_reg_out_layer] = Regularize(out_layer,
-                                                           params, shared_layers=True, name='out_layer'+str(activation))
+                                                           params, shared_layers=True,
+                                                           name='out_layer' + str(activation))
             shared_reg_deep_list.append(shared_reg_out_layer)
 
         # 3.7. Output layer: Softmax
@@ -500,14 +519,15 @@ class VideoDesc_Model(Model_Wrapper):
             #   - next_state
             if params['ENCODER_HIDDEN_SIZE'] > 0:
                 if params['BIDIRECTIONAL_ENCODER']:
-                    preprocessed_size = params['ENCODER_HIDDEN_SIZE']*2 + params['IMG_FEAT_SIZE']
+                    preprocessed_size = params['ENCODER_HIDDEN_SIZE'] * 2 + params['IMG_FEAT_SIZE']
                 else:
                     preprocessed_size = params['ENCODER_HIDDEN_SIZE'] + params['IMG_FEAT_SIZE']
             else:
                 preprocessed_size = params['IMG_FEAT_SIZE']
 
             # Define inputs
-            preprocessed_annotations = Input(name='preprocessed_input', shape=tuple([params['NUM_FRAMES'], preprocessed_size]))
+            preprocessed_annotations = Input(name='preprocessed_input',
+                                             shape=tuple([params['NUM_FRAMES'], preprocessed_size]))
             prev_h_state = Input(name='prev_state', shape=tuple([params['DECODER_HIDDEN_SIZE']]))
             input_attentional_decoder = [emb, preprocessed_annotations, prev_h_state]
 
@@ -861,16 +881,16 @@ class VideoDesc_Model(Model_Wrapper):
         self.matchings_sample_to_next_sample = {self.ids_outputs[0]: self.ids_inputs[2]}
 
         # Video model
-        #video = Input(name=self.ids_inputs[0], shape=tuple([params['NUM_FRAMES'], params['IMG_FEAT_SIZE']]))
+        # video = Input(name=self.ids_inputs[0], shape=tuple([params['NUM_FRAMES'], params['IMG_FEAT_SIZE']]))
         video = Input(name=self.ids_inputs[0], shape=tuple([None, params['IMG_FEAT_SIZE']]))
         input_video = video
         ##################################################################
         #                       ENCODER
         ##################################################################
         for activation, dimension in params['IMG_EMBEDDING_LAYERS']:
-            input_video = TimeDistributed(Dense(dimension, name='%s_1'%activation, activation=activation,
-                                               W_regularizer=l2(params['WEIGHT_DECAY'])))(input_video)
-            input_video = Regularize(input_video, params, name='%s_1'%activation)
+            input_video = TimeDistributed(Dense(dimension, name='%s_1' % activation, activation=activation,
+                                                W_regularizer=l2(params['WEIGHT_DECAY'])))(input_video)
+            input_video = Regularize(input_video, params, name='%s_1' % activation)
 
         if params['ENCODER_HIDDEN_SIZE'] > 0:
             if params['BIDIRECTIONAL_ENCODER']:
@@ -878,82 +898,15 @@ class VideoDesc_Model(Model_Wrapper):
                                                                  W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
                                                                  U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
                                                                  b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                 dropout_W=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
-                                                                 dropout_U=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
+                                                                 dropout_W=params['RECURRENT_DROPOUT_P'] if params[
+                                                                     'USE_RECURRENT_DROPOUT'] else None,
+                                                                 dropout_U=params['RECURRENT_DROPOUT_P'] if params[
+                                                                     'USE_RECURRENT_DROPOUT'] else None,
                                                                  return_sequences=True),
                                         name='bidirectional_encoder_' + params['RNN_TYPE'],
                                         merge_mode='concat')(input_video)
             else:
                 encoder = eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
-                                                       W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                       U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                       b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                       dropout_W=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
-                                                       dropout_U=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
-                                                       return_sequences=True,
-                                                       name='encoder_' + params['RNN_TYPE'])(input_video)
-            input_video = merge([input_video, encoder], mode='concat', concat_axis=2)
-            input_video = Regularize(input_video, params, name='input_video')
-
-            # 2.3. Potentially deep encoder
-            for n_layer in range(1, params['N_LAYERS_ENCODER']):
-                if params['BIDIRECTIONAL_DEEP_ENCODER']:
-                    current_input_video = Bidirectional(eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
-                                                                             W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                             U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                             b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                             dropout_W=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
-                                                                             dropout_U=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
-                                                                             return_sequences=True,
-                                                                             ),
-                                                    merge_mode='concat',
-                                                    name='bidirectional_encoder_' + str(n_layer))(input_video)
-                else:
-                    current_input_video = eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
-                                                           W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                           U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                           b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                           dropout_W=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
-                                                           dropout_U=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
-                                                           return_sequences=True,
-                                                           name='encoder_' + str(n_layer))(input_video)
-
-                current_input_video = Regularize(current_input_video, params, name='input_video_' + str(n_layer))
-                input_video = merge([input_video, current_input_video], mode='sum')
-
-        # Previously generated words as inputs for training
-        next_words = Input(name=self.ids_inputs[1], batch_shape=tuple([None, None]), dtype='int32')
-        shared_emb = Embedding(params['OUTPUT_VOCABULARY_SIZE'],
-                        params['TARGET_TEXT_EMBEDDING_SIZE'],
-                        name='target_word_embedding',
-                        W_regularizer=l2(params['WEIGHT_DECAY']),
-                        trainable=self.trg_embedding_weights_trainable,
-                        weights=self.trg_embedding_weights,
-                        mask_zero=True)
-        emb = shared_emb(next_words)
-        emb = Regularize(emb, params, name='target_word_embedding')
-
-
-        # Previously generated description from temporally-linked sample
-        prev_desc = Input(name=self.ids_inputs[2], batch_shape=tuple([None, None]), dtype='int32')
-        # previous description and previously generated words share the same embedding
-        prev_desc_emb = shared_emb(prev_desc)
-        # LSTM for encoding the previous description
-        if params['PREV_SENT_ENCODER_HIDDEN_SIZE'] > 0:
-            if params['BIDIRECTIONAL_PREV_SENT_ENCODER']:
-                prev_desc_enc = Bidirectional(eval(params['RNN_TYPE'])(params['PREV_SENT_ENCODER_HIDDEN_SIZE'],
-                                                                 W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                 U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                 b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                 dropout_W=params['RECURRENT_DROPOUT_P'] if params[
-                                                                     'USE_RECURRENT_DROPOUT'] else None,
-                                                                 dropout_U=params['RECURRENT_DROPOUT_P'] if params[
-                                                                     'USE_RECURRENT_DROPOUT'] else None,
-                                                                 return_sequences=False),
-                                        name='prev_desc_emb_bidirectional_encoder_' + params['RNN_TYPE'],
-                                        merge_mode='concat')(prev_desc_emb)
-            else:
-                prev_desc_enc = eval(params['RNN_TYPE'])(params['PREV_SENT_ENCODER_HIDDEN_SIZE'],
                                                    W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
                                                    U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
                                                    b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
@@ -961,14 +914,15 @@ class VideoDesc_Model(Model_Wrapper):
                                                        'USE_RECURRENT_DROPOUT'] else None,
                                                    dropout_U=params['RECURRENT_DROPOUT_P'] if params[
                                                        'USE_RECURRENT_DROPOUT'] else None,
-                                                   return_sequences=False,
-                                                   name='prev_desc_emb_encoder_' + params['RNN_TYPE'])(prev_desc_emb)
-            prev_desc_enc = Regularize(prev_desc_enc, params, name='prev_desc_enc')
+                                                   return_sequences=True,
+                                                   name='encoder_' + params['RNN_TYPE'])(input_video)
+            input_video = merge([input_video, encoder], mode='concat', concat_axis=2)
+            input_video = Regularize(input_video, params, name='input_video')
 
             # 2.3. Potentially deep encoder
-            for n_layer in range(1, params['N_LAYERS_PREV_SENT_ENCODER']):
-                if params['BIDIRECTIONAL_DEEP_PREV_SENT_ENCODER']:
-                    current_prev_desc_enc = Bidirectional(eval(params['RNN_TYPE'])(params['PREV_SENT_ENCODER_HIDDEN_SIZE'],
+            for n_layer in range(1, params['N_LAYERS_ENCODER']):
+                if params['BIDIRECTIONAL_DEEP_ENCODER']:
+                    current_input_video = Bidirectional(eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
                                                                                  W_regularizer=l2(
                                                                                      params['RECURRENT_WEIGHT_DECAY']),
                                                                                  U_regularizer=l2(
@@ -981,12 +935,12 @@ class VideoDesc_Model(Model_Wrapper):
                                                                                  dropout_U=params[
                                                                                      'RECURRENT_DROPOUT_P'] if params[
                                                                                      'USE_RECURRENT_DROPOUT'] else None,
-                                                                                 return_sequences=False,
+                                                                                 return_sequences=True,
                                                                                  ),
                                                         merge_mode='concat',
-                                                        name='prev_desc_emb_bidirectional_encoder_' + str(n_layer))(prev_desc_emb)
+                                                        name='bidirectional_encoder_' + str(n_layer))(input_video)
                 else:
-                    current_prev_desc_enc = eval(params['RNN_TYPE'])(params['PREV_SENT_ENCODER_HIDDEN_SIZE'],
+                    current_input_video = eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
                                                                    W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
                                                                    U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
                                                                    b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
@@ -994,12 +948,97 @@ class VideoDesc_Model(Model_Wrapper):
                                                                        'USE_RECURRENT_DROPOUT'] else None,
                                                                    dropout_U=params['RECURRENT_DROPOUT_P'] if params[
                                                                        'USE_RECURRENT_DROPOUT'] else None,
-                                                                   return_sequences=False,
-                                                                   name='prev_desc_emb_encoder_' + str(n_layer))(prev_desc_emb)
+                                                                   return_sequences=True,
+                                                                   name='encoder_' + str(n_layer))(input_video)
+
+                current_input_video = Regularize(current_input_video, params, name='input_video_' + str(n_layer))
+                input_video = merge([input_video, current_input_video], mode='sum')
+
+        # Previously generated words as inputs for training
+        next_words = Input(name=self.ids_inputs[1], batch_shape=tuple([None, None]), dtype='int32')
+        shared_emb = Embedding(params['OUTPUT_VOCABULARY_SIZE'],
+                               params['TARGET_TEXT_EMBEDDING_SIZE'],
+                               name='target_word_embedding',
+                               W_regularizer=l2(params['WEIGHT_DECAY']),
+                               trainable=self.trg_embedding_weights_trainable,
+                               weights=self.trg_embedding_weights,
+                               mask_zero=True)
+        emb = shared_emb(next_words)
+        emb = Regularize(emb, params, name='target_word_embedding')
+
+        # Previously generated description from temporally-linked sample
+        prev_desc = Input(name=self.ids_inputs[2], batch_shape=tuple([None, None]), dtype='int32')
+        # previous description and previously generated words share the same embedding
+        prev_desc_emb = shared_emb(prev_desc)
+        # LSTM for encoding the previous description
+        if params['PREV_SENT_ENCODER_HIDDEN_SIZE'] > 0:
+            if params['BIDIRECTIONAL_PREV_SENT_ENCODER']:
+                prev_desc_enc = Bidirectional(eval(params['RNN_TYPE'])(params['PREV_SENT_ENCODER_HIDDEN_SIZE'],
+                                                                       W_regularizer=l2(
+                                                                           params['RECURRENT_WEIGHT_DECAY']),
+                                                                       U_regularizer=l2(
+                                                                           params['RECURRENT_WEIGHT_DECAY']),
+                                                                       b_regularizer=l2(
+                                                                           params['RECURRENT_WEIGHT_DECAY']),
+                                                                       dropout_W=params['RECURRENT_DROPOUT_P'] if
+                                                                       params[
+                                                                           'USE_RECURRENT_DROPOUT'] else None,
+                                                                       dropout_U=params['RECURRENT_DROPOUT_P'] if
+                                                                       params[
+                                                                           'USE_RECURRENT_DROPOUT'] else None,
+                                                                       return_sequences=False),
+                                              name='prev_desc_emb_bidirectional_encoder_' + params['RNN_TYPE'],
+                                              merge_mode='concat')(prev_desc_emb)
+            else:
+                prev_desc_enc = eval(params['RNN_TYPE'])(params['PREV_SENT_ENCODER_HIDDEN_SIZE'],
+                                                         W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                         U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                         b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                         dropout_W=params['RECURRENT_DROPOUT_P'] if params[
+                                                             'USE_RECURRENT_DROPOUT'] else None,
+                                                         dropout_U=params['RECURRENT_DROPOUT_P'] if params[
+                                                             'USE_RECURRENT_DROPOUT'] else None,
+                                                         return_sequences=False,
+                                                         name='prev_desc_emb_encoder_' + params['RNN_TYPE'])(
+                    prev_desc_emb)
+            prev_desc_enc = Regularize(prev_desc_enc, params, name='prev_desc_enc')
+
+            # 2.3. Potentially deep encoder
+            for n_layer in range(1, params['N_LAYERS_PREV_SENT_ENCODER']):
+                if params['BIDIRECTIONAL_DEEP_PREV_SENT_ENCODER']:
+                    current_prev_desc_enc = Bidirectional(
+                        eval(params['RNN_TYPE'])(params['PREV_SENT_ENCODER_HIDDEN_SIZE'],
+                                                 W_regularizer=l2(
+                                                     params['RECURRENT_WEIGHT_DECAY']),
+                                                 U_regularizer=l2(
+                                                     params['RECURRENT_WEIGHT_DECAY']),
+                                                 b_regularizer=l2(
+                                                     params['RECURRENT_WEIGHT_DECAY']),
+                                                 dropout_W=params[
+                                                     'RECURRENT_DROPOUT_P'] if params[
+                                                     'USE_RECURRENT_DROPOUT'] else None,
+                                                 dropout_U=params[
+                                                     'RECURRENT_DROPOUT_P'] if params[
+                                                     'USE_RECURRENT_DROPOUT'] else None,
+                                                 return_sequences=False,
+                                                 ),
+                        merge_mode='concat',
+                        name='prev_desc_emb_bidirectional_encoder_' + str(n_layer))(prev_desc_emb)
+                else:
+                    current_prev_desc_enc = eval(params['RNN_TYPE'])(params['PREV_SENT_ENCODER_HIDDEN_SIZE'],
+                                                                     W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                     U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                     b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                     dropout_W=params['RECURRENT_DROPOUT_P'] if params[
+                                                                         'USE_RECURRENT_DROPOUT'] else None,
+                                                                     dropout_U=params['RECURRENT_DROPOUT_P'] if params[
+                                                                         'USE_RECURRENT_DROPOUT'] else None,
+                                                                     return_sequences=False,
+                                                                     name='prev_desc_emb_encoder_' + str(n_layer))(
+                        prev_desc_emb)
 
                 current_prev_desc_enc = Regularize(current_prev_desc_enc, params, name='prev_desc_enc_' + str(n_layer))
                 prev_desc_enc = merge([prev_desc_enc, current_prev_desc_enc], mode='sum')
-
 
         # LSTM initialization perceptrons with ctx mean
         # 3.2. Decoder's RNN initialization perceptrons with ctx mean
@@ -1007,7 +1046,7 @@ class VideoDesc_Model(Model_Wrapper):
                           output_shape=lambda s: (s[0], s[2]), name='lambda_mean')(input_video)
 
         if len(params['INIT_LAYERS']) > 0:
-            for n_layer_init in range(len(params['INIT_LAYERS'])-1):
+            for n_layer_init in range(len(params['INIT_LAYERS']) - 1):
                 ctx_mean = Dense(params['DECODER_HIDDEN_SIZE'], name='init_layer_%d' % n_layer_init,
                                  W_regularizer=l2(params['WEIGHT_DECAY']),
                                  activation=params['INIT_LAYERS'][n_layer_init]
@@ -1035,25 +1074,36 @@ class VideoDesc_Model(Model_Wrapper):
 
         # 3.3. Attentional decoder
         sharedAttRNNCond = eval('Att' + params['RNN_TYPE'] + 'Cond2Inputs')(params['DECODER_HIDDEN_SIZE'],
-                                                                     W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                     U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                     V_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                     b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                     wa_regularizer=l2(params['WEIGHT_DECAY']),
-                                                                     Wa_regularizer=l2(params['WEIGHT_DECAY']),
-                                                                     Ua_regularizer=l2(params['WEIGHT_DECAY']),
-                                                                     ba_regularizer=l2(params['WEIGHT_DECAY']),
-                                                                     dropout_W=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
-                                                                     dropout_U=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
-                                                                     dropout_V=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
-                                                                     dropout_wa=params['DROPOUT_P'] if params['USE_DROPOUT'] else None,
-                                                                     dropout_Wa=params['DROPOUT_P'] if params['USE_DROPOUT'] else None,
-                                                                     dropout_Ua=params['DROPOUT_P'] if params['USE_DROPOUT'] else None,
-                                                                     return_sequences=True,
-                                                                     return_extra_variables=True,
-                                                                     return_states=True,
-                                                                     attend_on_both=False,
-                                                                     name='decoder_Att' + params['RNN_TYPE'] + 'Cond')
+                                                                            W_regularizer=l2(
+                                                                                params['RECURRENT_WEIGHT_DECAY']),
+                                                                            U_regularizer=l2(
+                                                                                params['RECURRENT_WEIGHT_DECAY']),
+                                                                            V_regularizer=l2(
+                                                                                params['RECURRENT_WEIGHT_DECAY']),
+                                                                            b_regularizer=l2(
+                                                                                params['RECURRENT_WEIGHT_DECAY']),
+                                                                            wa_regularizer=l2(params['WEIGHT_DECAY']),
+                                                                            Wa_regularizer=l2(params['WEIGHT_DECAY']),
+                                                                            Ua_regularizer=l2(params['WEIGHT_DECAY']),
+                                                                            ba_regularizer=l2(params['WEIGHT_DECAY']),
+                                                                            dropout_W=params['RECURRENT_DROPOUT_P'] if
+                                                                            params['USE_RECURRENT_DROPOUT'] else None,
+                                                                            dropout_U=params['RECURRENT_DROPOUT_P'] if
+                                                                            params['USE_RECURRENT_DROPOUT'] else None,
+                                                                            dropout_V=params['RECURRENT_DROPOUT_P'] if
+                                                                            params['USE_RECURRENT_DROPOUT'] else None,
+                                                                            dropout_wa=params['DROPOUT_P'] if params[
+                                                                                'USE_DROPOUT'] else None,
+                                                                            dropout_Wa=params['DROPOUT_P'] if params[
+                                                                                'USE_DROPOUT'] else None,
+                                                                            dropout_Ua=params['DROPOUT_P'] if params[
+                                                                                'USE_DROPOUT'] else None,
+                                                                            return_sequences=True,
+                                                                            return_extra_variables=True,
+                                                                            return_states=True,
+                                                                            attend_on_both=False,
+                                                                            name='decoder_Att' + params[
+                                                                                'RNN_TYPE'] + 'Cond')
 
         rnn_output = sharedAttRNNCond(input_attentional_decoder)
         proj_h = rnn_output[0]
@@ -1083,21 +1133,21 @@ class VideoDesc_Model(Model_Wrapper):
         shared_Lambda_Permute = PermuteGeneral((1, 0, 2))
         out_layer_ctx = shared_Lambda_Permute(out_layer_ctx)
         shared_FC_emb = TimeDistributed(Dense(params['TARGET_TEXT_EMBEDDING_SIZE'],
-                                        W_regularizer=l2(params['WEIGHT_DECAY']),
-                                        activation='linear'),
+                                              W_regularizer=l2(params['WEIGHT_DECAY']),
+                                              activation='linear'),
                                         name='logit_emb')
         out_layer_emb = shared_FC_emb(emb)
 
         shared_FC_prev = Dense(params['TARGET_TEXT_EMBEDDING_SIZE'],
-                                              W_regularizer=l2(params['WEIGHT_DECAY']),
-                                              activation='linear', name='logit_prev')
+                               W_regularizer=l2(params['WEIGHT_DECAY']),
+                               activation='linear', name='logit_prev')
         out_layer_prev = shared_FC_prev(prev_desc_enc)
         # Add broadcastable dimension before merging
         shared_Lambda_Broadcast = Lambda(lambda x: K.expand_dims(x, dim=1),
-                                         output_shape=lambda s: tuple([s[0]]+[None]+[s[1]]), name='lambda_broadcast')
+                                         output_shape=lambda s: tuple([s[0]] + [None] + [s[1]]),
+                                         name='lambda_broadcast')
 
         out_layer_prev = shared_Lambda_Broadcast(out_layer_prev)
-
 
         ### Regularization of FC outputs
         [out_layer_mlp, shared_reg_out_layer_mlp] = Regularize(out_layer_mlp, params,
@@ -1107,7 +1157,7 @@ class VideoDesc_Model(Model_Wrapper):
         [out_layer_emb, shared_reg_out_layer_emb] = Regularize(out_layer_emb, params,
                                                                shared_layers=True, name='out_layer_emb')
         [out_layer_prev, shared_reg_out_layer_prev] = Regularize(out_layer_prev, params,
-                                                               shared_layers=True, name='out_layer_prev')
+                                                                 shared_layers=True, name='out_layer_prev')
 
         ### Merge of FC outputs
         additional_output = merge([out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev],
@@ -1128,10 +1178,11 @@ class VideoDesc_Model(Model_Wrapper):
             else:
                 shared_deep_list.append(TimeDistributed(Dense(dimension, activation=activation,
                                                               W_regularizer=l2(params['WEIGHT_DECAY'])),
-                                                        name=activation+'_%d' % i))
+                                                        name=activation + '_%d' % i))
             out_layer = shared_deep_list[-1](out_layer)
             [out_layer, shared_reg_out_layer] = Regularize(out_layer,
-                                                           params, shared_layers=True, name='out_layer'+str(activation))
+                                                           params, shared_layers=True,
+                                                           name='out_layer' + str(activation))
             shared_reg_deep_list.append(shared_reg_out_layer)
 
         # 3.7. Output layer: Softmax
@@ -1177,7 +1228,7 @@ class VideoDesc_Model(Model_Wrapper):
             #   - next_state
             if params['ENCODER_HIDDEN_SIZE'] > 0:
                 if params['BIDIRECTIONAL_ENCODER']:
-                    preprocessed_size = params['ENCODER_HIDDEN_SIZE']*2 + params['IMG_FEAT_SIZE']
+                    preprocessed_size = params['ENCODER_HIDDEN_SIZE'] * 2 + params['IMG_FEAT_SIZE']
                 else:
                     preprocessed_size = params['ENCODER_HIDDEN_SIZE'] + params['IMG_FEAT_SIZE']
             else:
@@ -1251,7 +1302,7 @@ class VideoDesc_Model(Model_Wrapper):
 
             # Store inputs and outputs names for model_next
             # first input must be previous word
-            self.ids_inputs_next = [self.ids_inputs[1]] + ['preprocessed_input',  'preprocessed_input2', 'prev_state']
+            self.ids_inputs_next = [self.ids_inputs[1]] + ['preprocessed_input', 'preprocessed_input2', 'prev_state']
             # first output must be the output probs.
             self.ids_outputs_next = self.ids_outputs + ['preprocessed_input', 'preprocessed_input2', 'next_state']
 
@@ -1304,60 +1355,68 @@ class VideoDesc_Model(Model_Wrapper):
         if params['ENCODER_HIDDEN_SIZE'] > 0:
             if params['BIDIRECTIONAL_ENCODER']:
                 encoded_video = Bidirectional(eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
-                                                                 W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                 U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                 b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                 dropout_W=params['RECURRENT_DROPOUT_P'] if params[
-                                                                     'USE_RECURRENT_DROPOUT'] else None,
-                                                                 dropout_U=params['RECURRENT_DROPOUT_P'] if params[
-                                                                     'USE_RECURRENT_DROPOUT'] else None,
-                                                                 return_sequences=True),
-                                        name='bidirectional_encoder_' + params['RNN_TYPE'],
-                                        merge_mode='concat')(input_video)
+                                                                       W_regularizer=l2(
+                                                                           params['RECURRENT_WEIGHT_DECAY']),
+                                                                       U_regularizer=l2(
+                                                                           params['RECURRENT_WEIGHT_DECAY']),
+                                                                       b_regularizer=l2(
+                                                                           params['RECURRENT_WEIGHT_DECAY']),
+                                                                       dropout_W=params['RECURRENT_DROPOUT_P'] if
+                                                                       params[
+                                                                           'USE_RECURRENT_DROPOUT'] else None,
+                                                                       dropout_U=params['RECURRENT_DROPOUT_P'] if
+                                                                       params[
+                                                                           'USE_RECURRENT_DROPOUT'] else None,
+                                                                       return_sequences=True),
+                                              name='bidirectional_encoder_' + params['RNN_TYPE'],
+                                              merge_mode='concat')(input_video)
             else:
                 encoded_video = eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
-                                                   W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                   U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                   b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                   dropout_W=params['RECURRENT_DROPOUT_P'] if params[
-                                                       'USE_RECURRENT_DROPOUT'] else None,
-                                                   dropout_U=params['RECURRENT_DROPOUT_P'] if params[
-                                                       'USE_RECURRENT_DROPOUT'] else None,
-                                                   return_sequences=True,
-                                                   name='encoder_' + params['RNN_TYPE'])(input_video)
+                                                         W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                         U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                         b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                         dropout_W=params['RECURRENT_DROPOUT_P'] if params[
+                                                             'USE_RECURRENT_DROPOUT'] else None,
+                                                         dropout_U=params['RECURRENT_DROPOUT_P'] if params[
+                                                             'USE_RECURRENT_DROPOUT'] else None,
+                                                         return_sequences=True,
+                                                         name='encoder_' + params['RNN_TYPE'])(input_video)
             encoded_video = Regularize(encoded_video, params, name='input_video')
 
             # 2.3. Potentially deep encoder
             for n_layer in range(1, params['N_LAYERS_ENCODER']):
                 if params['BIDIRECTIONAL_DEEP_ENCODER']:
                     current_encoded_video = Bidirectional(eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
-                                                                                 W_regularizer=l2(
-                                                                                     params['RECURRENT_WEIGHT_DECAY']),
-                                                                                 U_regularizer=l2(
-                                                                                     params['RECURRENT_WEIGHT_DECAY']),
-                                                                                 b_regularizer=l2(
-                                                                                     params['RECURRENT_WEIGHT_DECAY']),
-                                                                                 dropout_W=params[
-                                                                                     'RECURRENT_DROPOUT_P'] if params[
-                                                                                     'USE_RECURRENT_DROPOUT'] else None,
-                                                                                 dropout_U=params[
-                                                                                     'RECURRENT_DROPOUT_P'] if params[
-                                                                                     'USE_RECURRENT_DROPOUT'] else None,
-                                                                                 return_sequences=True,
-                                                                                 ),
-                                                        merge_mode='concat',
-                                                        name='bidirectional_encoder_' + str(n_layer))(encoded_video)
+                                                                                   W_regularizer=l2(
+                                                                                       params[
+                                                                                           'RECURRENT_WEIGHT_DECAY']),
+                                                                                   U_regularizer=l2(
+                                                                                       params[
+                                                                                           'RECURRENT_WEIGHT_DECAY']),
+                                                                                   b_regularizer=l2(
+                                                                                       params[
+                                                                                           'RECURRENT_WEIGHT_DECAY']),
+                                                                                   dropout_W=params[
+                                                                                       'RECURRENT_DROPOUT_P'] if params[
+                                                                                       'USE_RECURRENT_DROPOUT'] else None,
+                                                                                   dropout_U=params[
+                                                                                       'RECURRENT_DROPOUT_P'] if params[
+                                                                                       'USE_RECURRENT_DROPOUT'] else None,
+                                                                                   return_sequences=True,
+                                                                                   ),
+                                                          merge_mode='concat',
+                                                          name='bidirectional_encoder_' + str(n_layer))(encoded_video)
                 else:
                     current_encoded_video = eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
-                                                                   W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                   U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                   b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                   dropout_W=params['RECURRENT_DROPOUT_P'] if params[
-                                                                       'USE_RECURRENT_DROPOUT'] else None,
-                                                                   dropout_U=params['RECURRENT_DROPOUT_P'] if params[
-                                                                       'USE_RECURRENT_DROPOUT'] else None,
-                                                                   return_sequences=True,
-                                                                   name='encoder_' + str(n_layer))(encoded_video)
+                                                                     W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                     U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                     b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                     dropout_W=params['RECURRENT_DROPOUT_P'] if params[
+                                                                         'USE_RECURRENT_DROPOUT'] else None,
+                                                                     dropout_U=params['RECURRENT_DROPOUT_P'] if params[
+                                                                         'USE_RECURRENT_DROPOUT'] else None,
+                                                                     return_sequences=True,
+                                                                     name='encoder_' + str(n_layer))(encoded_video)
 
                 current_encoded_video = Regularize(current_encoded_video, params, name='input_video_' + str(n_layer))
                 encoded_video = merge([encoded_video, current_encoded_video], mode='sum')
@@ -1390,64 +1449,71 @@ class VideoDesc_Model(Model_Wrapper):
         if params['PREV_SENT_ENCODER_HIDDEN_SIZE'] > 0:
             if params['BIDIRECTIONAL_PREV_SENT_ENCODER']:
                 prev_desc_enc = Bidirectional(eval(params['RNN_TYPE'])(params['PREV_SENT_ENCODER_HIDDEN_SIZE'],
-                                                                 W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                 U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                 b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                 dropout_W=params['RECURRENT_DROPOUT_P'] if params[
-                                                                     'USE_RECURRENT_DROPOUT'] else None,
-                                                                 dropout_U=params['RECURRENT_DROPOUT_P'] if params[
-                                                                     'USE_RECURRENT_DROPOUT'] else None,
-                                                                 return_sequences=True),
-                                        name='prev_desc_emb_bidirectional_encoder_' + params['RNN_TYPE'],
-                                        merge_mode='concat')(prev_desc_emb)
+                                                                       W_regularizer=l2(
+                                                                           params['RECURRENT_WEIGHT_DECAY']),
+                                                                       U_regularizer=l2(
+                                                                           params['RECURRENT_WEIGHT_DECAY']),
+                                                                       b_regularizer=l2(
+                                                                           params['RECURRENT_WEIGHT_DECAY']),
+                                                                       dropout_W=params['RECURRENT_DROPOUT_P'] if
+                                                                       params[
+                                                                           'USE_RECURRENT_DROPOUT'] else None,
+                                                                       dropout_U=params['RECURRENT_DROPOUT_P'] if
+                                                                       params[
+                                                                           'USE_RECURRENT_DROPOUT'] else None,
+                                                                       return_sequences=True),
+                                              name='prev_desc_emb_bidirectional_encoder_' + params['RNN_TYPE'],
+                                              merge_mode='concat')(prev_desc_emb)
             else:
                 prev_desc_enc = eval(params['RNN_TYPE'])(params['PREV_SENT_ENCODER_HIDDEN_SIZE'],
-                                                   W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                   U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                   b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                   dropout_W=params['RECURRENT_DROPOUT_P'] if params[
-                                                       'USE_RECURRENT_DROPOUT'] else None,
-                                                   dropout_U=params['RECURRENT_DROPOUT_P'] if params[
-                                                       'USE_RECURRENT_DROPOUT'] else None,
-                                                   return_sequences=True,
-                                                   name='prev_desc_emb_encoder_' + params['RNN_TYPE'])(prev_desc_emb)
+                                                         W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                         U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                         b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                         dropout_W=params['RECURRENT_DROPOUT_P'] if params[
+                                                             'USE_RECURRENT_DROPOUT'] else None,
+                                                         dropout_U=params['RECURRENT_DROPOUT_P'] if params[
+                                                             'USE_RECURRENT_DROPOUT'] else None,
+                                                         return_sequences=True,
+                                                         name='prev_desc_emb_encoder_' + params['RNN_TYPE'])(
+                    prev_desc_emb)
             prev_desc_enc = Regularize(prev_desc_enc, params, name='prev_desc_enc')
 
             # 2.3. Potentially deep encoder
             for n_layer in range(1, params['N_LAYERS_PREV_SENT_ENCODER']):
                 if params['BIDIRECTIONAL_DEEP_PREV_SENT_ENCODER']:
-                    current_prev_desc_enc = Bidirectional(eval(params['RNN_TYPE'])(params['PREV_SENT_ENCODER_HIDDEN_SIZE'],
-                                                                                 W_regularizer=l2(
-                                                                                     params['RECURRENT_WEIGHT_DECAY']),
-                                                                                 U_regularizer=l2(
-                                                                                     params['RECURRENT_WEIGHT_DECAY']),
-                                                                                 b_regularizer=l2(
-                                                                                     params['RECURRENT_WEIGHT_DECAY']),
-                                                                                 dropout_W=params[
-                                                                                     'RECURRENT_DROPOUT_P'] if params[
-                                                                                     'USE_RECURRENT_DROPOUT'] else None,
-                                                                                 dropout_U=params[
-                                                                                     'RECURRENT_DROPOUT_P'] if params[
-                                                                                     'USE_RECURRENT_DROPOUT'] else None,
-                                                                                 return_sequences=True,
-                                                                                 ),
-                                                        merge_mode='concat',
-                                                        name='prev_desc_emb_bidirectional_encoder_' + str(n_layer))(prev_desc_emb)
+                    current_prev_desc_enc = Bidirectional(
+                        eval(params['RNN_TYPE'])(params['PREV_SENT_ENCODER_HIDDEN_SIZE'],
+                                                 W_regularizer=l2(
+                                                     params['RECURRENT_WEIGHT_DECAY']),
+                                                 U_regularizer=l2(
+                                                     params['RECURRENT_WEIGHT_DECAY']),
+                                                 b_regularizer=l2(
+                                                     params['RECURRENT_WEIGHT_DECAY']),
+                                                 dropout_W=params[
+                                                     'RECURRENT_DROPOUT_P'] if params[
+                                                     'USE_RECURRENT_DROPOUT'] else None,
+                                                 dropout_U=params[
+                                                     'RECURRENT_DROPOUT_P'] if params[
+                                                     'USE_RECURRENT_DROPOUT'] else None,
+                                                 return_sequences=True,
+                                                 ),
+                        merge_mode='concat',
+                        name='prev_desc_emb_bidirectional_encoder_' + str(n_layer))(prev_desc_emb)
                 else:
                     current_prev_desc_enc = eval(params['RNN_TYPE'])(params['PREV_SENT_ENCODER_HIDDEN_SIZE'],
-                                                                   W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                   U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                   b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                   dropout_W=params['RECURRENT_DROPOUT_P'] if params[
-                                                                       'USE_RECURRENT_DROPOUT'] else None,
-                                                                   dropout_U=params['RECURRENT_DROPOUT_P'] if params[
-                                                                       'USE_RECURRENT_DROPOUT'] else None,
-                                                                   return_sequences=True,
-                                                                   name='prev_desc_emb_encoder_' + str(n_layer))(prev_desc_emb)
+                                                                     W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                     U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                     b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                     dropout_W=params['RECURRENT_DROPOUT_P'] if params[
+                                                                         'USE_RECURRENT_DROPOUT'] else None,
+                                                                     dropout_U=params['RECURRENT_DROPOUT_P'] if params[
+                                                                         'USE_RECURRENT_DROPOUT'] else None,
+                                                                     return_sequences=True,
+                                                                     name='prev_desc_emb_encoder_' + str(n_layer))(
+                        prev_desc_emb)
 
                 current_prev_desc_enc = Regularize(current_prev_desc_enc, params, name='prev_desc_enc_' + str(n_layer))
                 prev_desc_enc = merge([prev_desc_enc, current_prev_desc_enc], mode='sum')
-
 
         # LSTM initialization perceptrons with ctx mean
         # 3.2. Decoder's RNN initialization perceptrons with ctx mean
@@ -1484,35 +1550,46 @@ class VideoDesc_Model(Model_Wrapper):
 
         # 3.3. Attentional decoder
         sharedAttRNNCond = eval('Att' + params['RNN_TYPE'] + 'Cond2Inputs')(params['DECODER_HIDDEN_SIZE'],
-                                                                     W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                     U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                     V_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                     b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                     wa_regularizer=l2(params['WEIGHT_DECAY']),
-                                                                     Wa_regularizer=l2(params['WEIGHT_DECAY']),
-                                                                     Ua_regularizer=l2(params['WEIGHT_DECAY']),
-                                                                     ba_regularizer=l2(params['WEIGHT_DECAY']),
-                                                                     wa2_regularizer=l2(params['WEIGHT_DECAY']),
-                                                                     Wa2_regularizer=l2(params['WEIGHT_DECAY']),
-                                                                     Ua2_regularizer=l2(params['WEIGHT_DECAY']),
-                                                                     ba2_regularizer=l2(params['WEIGHT_DECAY']),
-                                                                     dropout_W=params['RECURRENT_DROPOUT_P'] if params[
-                                                                         'USE_RECURRENT_DROPOUT'] else None,
-                                                                     dropout_U=params['RECURRENT_DROPOUT_P'] if params[
-                                                                         'USE_RECURRENT_DROPOUT'] else None,
-                                                                     dropout_V=params['RECURRENT_DROPOUT_P'] if params[
-                                                                         'USE_RECURRENT_DROPOUT'] else None,
-                                                                     dropout_wa=params['RECURRENT_DROPOUT_P'] if params[
-                                                                         'USE_RECURRENT_DROPOUT'] else None,
-                                                                     dropout_Wa=params['RECURRENT_DROPOUT_P'] if params[
-                                                                         'USE_RECURRENT_DROPOUT'] else None,
-                                                                     dropout_Ua=params['RECURRENT_DROPOUT_P'] if params[
-                                                                         'USE_RECURRENT_DROPOUT'] else None,
-                                                                     return_sequences=True,
-                                                                     return_extra_variables=True,
-                                                                     return_states=True,
-                                                                     attend_on_both=True,
-                                                                     name='decoder_Att' + params['RNN_TYPE'] + 'Cond2Inputs')
+                                                                            W_regularizer=l2(
+                                                                                params['RECURRENT_WEIGHT_DECAY']),
+                                                                            U_regularizer=l2(
+                                                                                params['RECURRENT_WEIGHT_DECAY']),
+                                                                            V_regularizer=l2(
+                                                                                params['RECURRENT_WEIGHT_DECAY']),
+                                                                            b_regularizer=l2(
+                                                                                params['RECURRENT_WEIGHT_DECAY']),
+                                                                            wa_regularizer=l2(params['WEIGHT_DECAY']),
+                                                                            Wa_regularizer=l2(params['WEIGHT_DECAY']),
+                                                                            Ua_regularizer=l2(params['WEIGHT_DECAY']),
+                                                                            ba_regularizer=l2(params['WEIGHT_DECAY']),
+                                                                            wa2_regularizer=l2(params['WEIGHT_DECAY']),
+                                                                            Wa2_regularizer=l2(params['WEIGHT_DECAY']),
+                                                                            Ua2_regularizer=l2(params['WEIGHT_DECAY']),
+                                                                            ba2_regularizer=l2(params['WEIGHT_DECAY']),
+                                                                            dropout_W=params['RECURRENT_DROPOUT_P'] if
+                                                                            params[
+                                                                                'USE_RECURRENT_DROPOUT'] else None,
+                                                                            dropout_U=params['RECURRENT_DROPOUT_P'] if
+                                                                            params[
+                                                                                'USE_RECURRENT_DROPOUT'] else None,
+                                                                            dropout_V=params['RECURRENT_DROPOUT_P'] if
+                                                                            params[
+                                                                                'USE_RECURRENT_DROPOUT'] else None,
+                                                                            dropout_wa=params['RECURRENT_DROPOUT_P'] if
+                                                                            params[
+                                                                                'USE_RECURRENT_DROPOUT'] else None,
+                                                                            dropout_Wa=params['RECURRENT_DROPOUT_P'] if
+                                                                            params[
+                                                                                'USE_RECURRENT_DROPOUT'] else None,
+                                                                            dropout_Ua=params['RECURRENT_DROPOUT_P'] if
+                                                                            params[
+                                                                                'USE_RECURRENT_DROPOUT'] else None,
+                                                                            return_sequences=True,
+                                                                            return_extra_variables=True,
+                                                                            return_states=True,
+                                                                            attend_on_both=True,
+                                                                            name='decoder_Att' + params[
+                                                                                'RNN_TYPE'] + 'Cond2Inputs')
 
         rnn_output = sharedAttRNNCond(input_attentional_decoder)
         proj_h = rnn_output[0]
@@ -1571,7 +1648,7 @@ class VideoDesc_Model(Model_Wrapper):
             additional_output = shared_merge([out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev])
         else:
             additional_output = merge([out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev],
-                                    mode=params['ADDITIONAL_OUTPUT_MERGE_MODE'], name='additional_input')
+                                      mode=params['ADDITIONAL_OUTPUT_MERGE_MODE'], name='additional_input')
 
         # tanh activation
         shared_activation_tanh = Activation('tanh')
@@ -1646,7 +1723,6 @@ class VideoDesc_Model(Model_Wrapper):
             else:
                 preprocessed_size = params['IMG_FEAT_SIZE']
 
-
             if params['PREV_SENT_ENCODER_HIDDEN_SIZE'] > 0:
                 if params['BIDIRECTIONAL_PREV_SENT_ENCODER']:
                     preprocessed_size_prev_desc = params['PREV_SENT_ENCODER_HIDDEN_SIZE'] * 2
@@ -1698,7 +1774,8 @@ class VideoDesc_Model(Model_Wrapper):
                 additional_output = shared_merge([out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev])
             else:
                 additional_output = merge([out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev],
-                                      mode=params['ADDITIONAL_OUTPUT_MERGE_MODE'], name='additional_input_model_next')
+                                          mode=params['ADDITIONAL_OUTPUT_MERGE_MODE'],
+                                          name='additional_input_model_next')
             out_layer = shared_activation_tanh(additional_output)
 
             for (deep_out_layer, reg_list) in zip(shared_deep_list, shared_reg_deep_list):
@@ -1843,7 +1920,6 @@ class VideoDesc_Model(Model_Wrapper):
         emb = shared_emb(next_words)
         emb = Regularize(emb, params, name='target_word_embedding')
 
-
         # Previously generated description from temporally-linked sample
         prev_desc = Input(name=self.ids_inputs[2], batch_shape=tuple([None, None]), dtype='int32')
         # previous description and previously generated words share the same embedding
@@ -1919,7 +1995,6 @@ class VideoDesc_Model(Model_Wrapper):
                 current_prev_desc_enc = Regularize(current_prev_desc_enc, params, name='prev_desc_enc_' + str(n_layer))
                 prev_desc_enc = merge([prev_desc_enc, current_prev_desc_enc], mode='sum')
 
-
         # Video from the previous event
         prev_vid = Input(name=self.ids_inputs[3], shape=tuple([None, params['IMG_FEAT_SIZE']]))
         prev_vid_emb = prev_vid
@@ -1928,32 +2003,32 @@ class VideoDesc_Model(Model_Wrapper):
         if params['PREV_SENT_ENCODER_HIDDEN_SIZE'] > 0:
             if params['BIDIRECTIONAL_PREV_SENT_ENCODER']:
                 prev_vid_enc = Bidirectional(eval(params['RNN_TYPE'])(params['PREV_SENT_ENCODER_HIDDEN_SIZE'],
-                                                                       W_regularizer=l2(
-                                                                           params['RECURRENT_WEIGHT_DECAY']),
-                                                                       U_regularizer=l2(
-                                                                           params['RECURRENT_WEIGHT_DECAY']),
-                                                                       b_regularizer=l2(
-                                                                           params['RECURRENT_WEIGHT_DECAY']),
-                                                                       dropout_W=params['RECURRENT_DROPOUT_P'] if
-                                                                       params[
-                                                                           'USE_RECURRENT_DROPOUT'] else None,
-                                                                       dropout_U=params['RECURRENT_DROPOUT_P'] if
-                                                                       params[
-                                                                           'USE_RECURRENT_DROPOUT'] else None,
-                                                                       return_sequences=True),
-                                              name='prev_vid_emb_bidirectional_encoder_' + params['RNN_TYPE'],
-                                              merge_mode='concat')(prev_vid_emb)
+                                                                      W_regularizer=l2(
+                                                                          params['RECURRENT_WEIGHT_DECAY']),
+                                                                      U_regularizer=l2(
+                                                                          params['RECURRENT_WEIGHT_DECAY']),
+                                                                      b_regularizer=l2(
+                                                                          params['RECURRENT_WEIGHT_DECAY']),
+                                                                      dropout_W=params['RECURRENT_DROPOUT_P'] if
+                                                                      params[
+                                                                          'USE_RECURRENT_DROPOUT'] else None,
+                                                                      dropout_U=params['RECURRENT_DROPOUT_P'] if
+                                                                      params[
+                                                                          'USE_RECURRENT_DROPOUT'] else None,
+                                                                      return_sequences=True),
+                                             name='prev_vid_emb_bidirectional_encoder_' + params['RNN_TYPE'],
+                                             merge_mode='concat')(prev_vid_emb)
             else:
                 prev_vid_enc = eval(params['RNN_TYPE'])(params['PREV_SENT_ENCODER_HIDDEN_SIZE'],
-                                                         W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                         U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                         b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                         dropout_W=params['RECURRENT_DROPOUT_P'] if params[
-                                                             'USE_RECURRENT_DROPOUT'] else None,
-                                                         dropout_U=params['RECURRENT_DROPOUT_P'] if params[
-                                                             'USE_RECURRENT_DROPOUT'] else None,
-                                                         return_sequences=True,
-                                                         name='prev_vid_emb_encoder_' + params['RNN_TYPE'])(prev_vid_emb)
+                                                        W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                        U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                        b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                        dropout_W=params['RECURRENT_DROPOUT_P'] if params[
+                                                            'USE_RECURRENT_DROPOUT'] else None,
+                                                        dropout_U=params['RECURRENT_DROPOUT_P'] if params[
+                                                            'USE_RECURRENT_DROPOUT'] else None,
+                                                        return_sequences=True,
+                                                        name='prev_vid_emb_encoder_' + params['RNN_TYPE'])(prev_vid_emb)
             prev_vid_enc = Regularize(prev_vid_enc, params, name='prev_vid_enc')
 
             # 2.3. Potentially deep encoder
@@ -1979,19 +2054,19 @@ class VideoDesc_Model(Model_Wrapper):
                         name='prev_vid_emb_bidirectional_encoder_' + str(n_layer))(prev_vid_emb)
                 else:
                     current_prev_vid_enc = eval(params['RNN_TYPE'])(params['PREV_SENT_ENCODER_HIDDEN_SIZE'],
-                                                                     W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                     U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                     b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
-                                                                     dropout_W=params['RECURRENT_DROPOUT_P'] if params[
-                                                                         'USE_RECURRENT_DROPOUT'] else None,
-                                                                     dropout_U=params['RECURRENT_DROPOUT_P'] if params[
-                                                                         'USE_RECURRENT_DROPOUT'] else None,
-                                                                     return_sequences=True,
-                                                                     name='prev_vid_emb_encoder_' + str(n_layer))(prev_vid_emb)
+                                                                    W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                    U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                    b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                    dropout_W=params['RECURRENT_DROPOUT_P'] if params[
+                                                                        'USE_RECURRENT_DROPOUT'] else None,
+                                                                    dropout_U=params['RECURRENT_DROPOUT_P'] if params[
+                                                                        'USE_RECURRENT_DROPOUT'] else None,
+                                                                    return_sequences=True,
+                                                                    name='prev_vid_emb_encoder_' + str(n_layer))(
+                        prev_vid_emb)
 
                 current_prev_vid_enc = Regularize(current_prev_vid_enc, params, name='prev_vid_enc_' + str(n_layer))
                 prev_vid_enc = merge([prev_vid_enc, current_prev_vid_enc], mode='sum')
-
 
         # LSTM initialization perceptrons with ctx mean
         # 3.2. Decoder's RNN initialization perceptrons with ctx mean
@@ -2053,11 +2128,14 @@ class VideoDesc_Model(Model_Wrapper):
                                                                             dropout_V=params['RECURRENT_DROPOUT_P'] if
                                                                             params[
                                                                                 'USE_RECURRENT_DROPOUT'] else None,
-                                                                            dropout_wa=params['RECURRENT_DROPOUT_P'] if params[
+                                                                            dropout_wa=params['RECURRENT_DROPOUT_P'] if
+                                                                            params[
                                                                                 'USE_RECURRENT_DROPOUT'] else None,
-                                                                            dropout_Wa=params['RECURRENT_DROPOUT_P'] if params[
+                                                                            dropout_Wa=params['RECURRENT_DROPOUT_P'] if
+                                                                            params[
                                                                                 'USE_RECURRENT_DROPOUT'] else None,
-                                                                            dropout_Ua=params['RECURRENT_DROPOUT_P'] if params[
+                                                                            dropout_Ua=params['RECURRENT_DROPOUT_P'] if
+                                                                            params[
                                                                                 'USE_RECURRENT_DROPOUT'] else None,
                                                                             return_sequences=True,
                                                                             return_extra_variables=True,
@@ -2108,9 +2186,9 @@ class VideoDesc_Model(Model_Wrapper):
         out_layer_prev = shared_Lambda_Permute(out_layer_prev)
 
         shared_FC_prev_vid = TimeDistributed(Dense(params['TARGET_TEXT_EMBEDDING_SIZE'],
-                                               W_regularizer=l2(params['WEIGHT_DECAY']),
-                                               activation='linear'),
-                                         name='logit_prev_vid')
+                                                   W_regularizer=l2(params['WEIGHT_DECAY']),
+                                                   activation='linear'),
+                                             name='logit_prev_vid')
         out_layer_prev_vid = shared_FC_prev_vid(prev_vid_att)
         out_layer_prev_vid = shared_Lambda_Permute(out_layer_prev_vid)
 
@@ -2124,14 +2202,15 @@ class VideoDesc_Model(Model_Wrapper):
         [out_layer_prev, shared_reg_out_layer_prev] = Regularize(out_layer_prev, params,
                                                                  shared_layers=True, name='out_layer_prev')
         [out_layer_prev_vid, shared_reg_out_layer_prev_vid] = Regularize(out_layer_prev_vid, params,
-                                                                 shared_layers=True, name='out_layer_prev_vid')
+                                                                         shared_layers=True, name='out_layer_prev_vid')
 
         ### Merge of FC outputs
         if params['WEIGHTED_MERGE']:
             shared_merge = WeightedMerge(mode=params['ADDITIONAL_OUTPUT_MERGE_MODE'],
                                          lambdas_regularizer=l2(params['WEIGHT_DECAY']),
                                          name='additional_input')
-            additional_output = shared_merge([out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev, out_layer_prev_vid])
+            additional_output = shared_merge(
+                [out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev, out_layer_prev_vid])
         else:
             additional_output = merge([out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev, out_layer_prev_vid],
                                       mode=params['ADDITIONAL_OUTPUT_MERGE_MODE'], name='additional_input')
@@ -2188,7 +2267,8 @@ class VideoDesc_Model(Model_Wrapper):
             # Store inputs and outputs names for model_init
             self.ids_inputs_init = self.ids_inputs
             # first output must be the output probs.
-            self.ids_outputs_init = self.ids_outputs + ['preprocessed_input', 'preprocessed_input2', 'preprocessed_input3', 'next_state']
+            self.ids_outputs_init = self.ids_outputs + ['preprocessed_input', 'preprocessed_input2',
+                                                        'preprocessed_input3', 'next_state']
             if params['RNN_TYPE'] == 'LSTM':
                 self.ids_outputs_init.append('next_memory')
 
@@ -2223,9 +2303,10 @@ class VideoDesc_Model(Model_Wrapper):
             preprocessed_prev_description = Input(name='preprocessed_input2',
                                                   shape=tuple([None, preprocessed_size_prev_desc]))
             preprocessed_prev_video = Input(name='preprocessed_input3',
-                                                  shape=tuple([None, preprocessed_size_prev_vid]))
+                                            shape=tuple([None, preprocessed_size_prev_vid]))
             prev_h_state = Input(name='prev_state', shape=tuple([params['DECODER_HIDDEN_SIZE']]))
-            input_attentional_decoder = [emb, preprocessed_annotations, preprocessed_prev_description, preprocessed_prev_video, prev_h_state]
+            input_attentional_decoder = [emb, preprocessed_annotations, preprocessed_prev_description,
+                                         preprocessed_prev_video, prev_h_state]
 
             if params['RNN_TYPE'] == 'LSTM':
                 prev_h_memory = Input(name='prev_memory', shape=tuple([params['DECODER_HIDDEN_SIZE']]))
@@ -2256,11 +2337,11 @@ class VideoDesc_Model(Model_Wrapper):
 
             for (reg_out_layer_mlp, reg_out_layer_ctx,
                  reg_out_layer_emb, reg_out_layer_prev,
-                 reg_out_layer_prev_vid)                 in zip(shared_reg_out_layer_mlp,
-                                                               shared_reg_out_layer_ctx,
-                                                               shared_reg_out_layer_emb,
-                                                               shared_reg_out_layer_prev,
-                                                               shared_reg_out_layer_prev_vid):
+                 reg_out_layer_prev_vid) in zip(shared_reg_out_layer_mlp,
+                                                shared_reg_out_layer_ctx,
+                                                shared_reg_out_layer_emb,
+                                                shared_reg_out_layer_prev,
+                                                shared_reg_out_layer_prev_vid):
                 out_layer_mlp = reg_out_layer_mlp(out_layer_mlp)
                 out_layer_ctx = reg_out_layer_ctx(out_layer_ctx)
                 out_layer_emb = reg_out_layer_emb(out_layer_emb)
@@ -2268,11 +2349,13 @@ class VideoDesc_Model(Model_Wrapper):
                 out_layer_prev_vid = reg_out_layer_prev_vid(out_layer_prev_vid)
 
             if params['WEIGHTED_MERGE']:
-                additional_output = shared_merge([out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev, out_layer_prev_vid])
+                additional_output = shared_merge(
+                    [out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev, out_layer_prev_vid])
             else:
-                additional_output = merge([out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev, out_layer_prev_vid],
-                                          mode=params['ADDITIONAL_OUTPUT_MERGE_MODE'],
-                                          name='additional_input_model_next')
+                additional_output = merge(
+                    [out_layer_mlp, out_layer_ctx, out_layer_emb, out_layer_prev, out_layer_prev_vid],
+                    mode=params['ADDITIONAL_OUTPUT_MERGE_MODE'],
+                    name='additional_input_model_next')
             out_layer = shared_activation_tanh(additional_output)
 
             for (deep_out_layer, reg_list) in zip(shared_deep_list, shared_reg_deep_list):
@@ -2282,8 +2365,10 @@ class VideoDesc_Model(Model_Wrapper):
 
             # Softmax
             softout = shared_FC_soft(out_layer)
-            model_next_inputs = [next_words, preprocessed_annotations, preprocessed_prev_description, preprocessed_prev_video, prev_h_state]
-            model_next_outputs = [softout, preprocessed_annotations, preprocessed_prev_description, preprocessed_prev_video, h_state]
+            model_next_inputs = [next_words, preprocessed_annotations, preprocessed_prev_description,
+                                 preprocessed_prev_video, prev_h_state]
+            model_next_outputs = [softout, preprocessed_annotations, preprocessed_prev_description,
+                                  preprocessed_prev_video, h_state]
             if params['RNN_TYPE'] == 'LSTM':
                 model_next_inputs.append(prev_h_memory)
                 model_next_outputs.append(h_memory)
@@ -2292,9 +2377,11 @@ class VideoDesc_Model(Model_Wrapper):
 
             # Store inputs and outputs names for model_next
             # first input must be previous word
-            self.ids_inputs_next = [self.ids_inputs[1]] + ['preprocessed_input', 'preprocessed_input2', 'preprocessed_input3', 'prev_state']
+            self.ids_inputs_next = [self.ids_inputs[1]] + ['preprocessed_input', 'preprocessed_input2',
+                                                           'preprocessed_input3', 'prev_state']
             # first output must be the output probs.
-            self.ids_outputs_next = self.ids_outputs + ['preprocessed_input', 'preprocessed_input2', 'preprocessed_input3', 'next_state']
+            self.ids_outputs_next = self.ids_outputs + ['preprocessed_input', 'preprocessed_input2',
+                                                        'preprocessed_input3', 'next_state']
 
             # Input -> Output matchings from model_init to model_next and from model_next to model_next
             self.matchings_init_to_next = {'preprocessed_input': 'preprocessed_input',
@@ -2394,18 +2481,16 @@ class VideoDesc_Model(Model_Wrapper):
                 input_video = merge([input_video, ctx_mean], mode='sum')
                 input_video = Regularize(input_video, params, name='input_video_' + str(n_layer))
 
-
-
         # Previously generated description from temporally-linked sample
         prev_desc = Input(name=self.ids_inputs[1], batch_shape=tuple([None, None]), dtype='int32')
         # previous description and previously generated words share the same embedding
         shared_emb = Embedding(params['OUTPUT_VOCABULARY_SIZE'],
-                                   params['TARGET_TEXT_EMBEDDING_SIZE'],
-                                   name='target_word_embedding',
-                                   W_regularizer=l2(params['WEIGHT_DECAY']),
-                                   trainable=self.trg_embedding_weights_trainable,
-                                   weights=self.trg_embedding_weights,
-                                   mask_zero=True)
+                               params['TARGET_TEXT_EMBEDDING_SIZE'],
+                               name='target_word_embedding',
+                               W_regularizer=l2(params['WEIGHT_DECAY']),
+                               trainable=self.trg_embedding_weights_trainable,
+                               weights=self.trg_embedding_weights,
+                               mask_zero=True)
         prev_desc_emb = shared_emb(prev_desc)
 
         # LSTM for encoding the previous description
@@ -2492,7 +2577,6 @@ class VideoDesc_Model(Model_Wrapper):
         ### Regularization of FC outputs
         input_video = Regularize(input_video, params, name='out_layer_ctx')
         prev_desc_enc = Regularize(prev_desc_enc, params, name='out_layer_prev')
-
 
         ### Merge of FC outputs
         if params['WEIGHTED_MERGE']:

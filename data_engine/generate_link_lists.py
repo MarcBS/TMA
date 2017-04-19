@@ -1,4 +1,3 @@
-
 ## Parameters
 
 base_path = '/media/HDD_3TB/DATASETS/EDUB-SegDesc/'
@@ -24,15 +23,14 @@ if without_noninfo:
 else:
     suffix = ''
 
-train = 'train_list_final'+suffix+'.txt'
-val = 'val_list_final'+suffix+'.txt'
-test = 'test_list_final'+suffix+'.txt'
+train = 'train_list_final' + suffix + '.txt'
+val = 'val_list_final' + suffix + '.txt'
+test = 'test_list_final' + suffix + '.txt'
 
 # Outputs
-train_out = 'train_link_samples'+suffix+'.txt'
-val_out = 'val_link_samples'+suffix+'.txt'
-test_out = 'test_link_samples'+suffix+'.txt'
-
+train_out = 'train_link_samples' + suffix + '.txt'
+val_out = 'val_link_samples' + suffix + '.txt'
+test_out = 'test_link_samples' + suffix + '.txt'
 
 #################################
 
@@ -41,13 +39,14 @@ test_out = 'test_link_samples'+suffix+'.txt'
 # Generate temporal links between samples which belong to the same day
 for fin, fout in zip([train, val, test], [train_out, val_out, test_out]):
 
-    with open(base_path+'/'+path_files+'/'+fin, 'r') as fi, open(base_path+'/'+path_files+'/'+fout, 'w') as fo:
+    with open(base_path + '/' + path_files + '/' + fin, 'r') as fi, open(base_path + '/' + path_files + '/' + fout,
+                                                                         'w') as fo:
         prev_day_name = ''
         lines_counter = -1
         for line in fi:
             day_name = line.split('_')[0]
             if day_name == prev_day_name:
-                fo.write(str(lines_counter)+'\n')
+                fo.write(str(lines_counter) + '\n')
                 lines_counter += 1
             else:
                 fo.write('-1\n')

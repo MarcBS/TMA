@@ -17,20 +17,19 @@ print 'Listing all images from all videos...'
 
 len_base = len(base_path)
 for s, o, c in zip(split_lists, out_lists, counts_lists):
-    s = open(base_path+'/'+path_files+'/'+s, 'r')
-    o = open(base_path+'/'+path_files+'/'+o, 'w')
-    c = open(base_path+'/'+path_files+'/'+c, 'w')
+    s = open(base_path + '/' + path_files + '/' + s, 'r')
+    o = open(base_path + '/' + path_files + '/' + o, 'w')
+    c = open(base_path + '/' + path_files + '/' + c, 'w')
     for line in s:
         video = line.strip('\n')
-        this_path = base_path+'/'+path_imgs+"/video_"+video+"/*"+imgs_format
+        this_path = base_path + '/' + path_imgs + "/video_" + video + "/*" + imgs_format
         images = glob.glob(this_path)
         for im in images:
-            #o.write(path_imgs+"/video_"+video+"/"+im+'\n') # store each image path
-            o.write(im[len_base:]+'\n')
-        c.write(str(len(images))+'\n') # store counts
+            # o.write(path_imgs+"/video_"+video+"/"+im+'\n') # store each image path
+            o.write(im[len_base:] + '\n')
+        c.write(str(len(images)) + '\n')  # store counts
     s.close()
     o.close()
     c.close()
-    
-print 'Done!'
 
+print 'Done!'

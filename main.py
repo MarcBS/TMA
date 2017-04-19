@@ -1,17 +1,17 @@
+import ast
 import logging
+import sys
 from timeit import default_timer as timer
 
 from config import load_parameters
 from data_engine.prepare_data import build_dataset
-from viddesc_model import VideoDesc_Model
-from keras_wrapper.utils import decode_predictions_beam_search, decode_predictions
-from keras_wrapper.cnn_model import loadModel, saveModel, transferWeights, updateModel
+from keras_wrapper.cnn_model import loadModel, transferWeights, updateModel
 from keras_wrapper.extra.callbacks import EvalPerformance, Sample
-from keras_wrapper.extra.read_write import dict2pkl, list2file
 from keras_wrapper.extra.evaluation import selectMetric
+from keras_wrapper.extra.read_write import dict2pkl, list2file
+from keras_wrapper.utils import decode_predictions_beam_search, decode_predictions
+from viddesc_model import VideoDesc_Model
 
-import sys
-import ast
 logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s] %(message)s', datefmt='%d/%m/%Y %H:%M:%S')
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,6 @@ def train_model(params):
 
     check_params(params)
 
-
     ########### Load data
     dataset = build_dataset(params)
     if not '-vidtext-embed' in params['DATASET_NAME']:
@@ -41,15 +40,15 @@ def train_model(params):
     ########### Build model
 
     if params['MODE'] == 'finetuning':
-        #video_model = loadModel(params['PRE_TRAINED_MODEL_STORE_PATHS'], params['RELOAD'])
+        # video_model = loadModel(params['PRE_TRAINED_MODEL_STORE_PATHS'], params['RELOAD'])
         video_model = VideoDesc_Model(params,
-                                            type=params['MODEL_TYPE'],
-                                            verbose=params['VERBOSE'],
-                                            model_name=params['MODEL_NAME'] + '_reloaded',
-                                            vocabularies=dataset.vocabulary,
-                                            store_path=params['STORE_PATH'],
-                                            set_optimizer=False,
-                                            clear_dirs=False)
+                                      type=params['MODEL_TYPE'],
+                                      verbose=params['VERBOSE'],
+                                      model_name=params['MODEL_NAME'] + '_reloaded',
+                                      vocabularies=dataset.vocabulary,
+                                      store_path=params['STORE_PATH'],
+                                      set_optimizer=False,
+                                      clear_dirs=False)
         video_model = updateModel(video_model, params['RELOAD_PATH'], params['RELOAD'], reload_epoch=False)
         video_model.setParams(params)
 
@@ -74,7 +73,7 @@ def train_model(params):
         params['MAX_EPOCH'] += params['RELOAD']
 
     else:
-        if params['RELOAD'] == 0 or params['LOAD_WEIGHTS_ONLY']: # build new model
+        if params['RELOAD'] == 0 or params['LOAD_WEIGHTS_ONLY']:  # build new model
             video_model = VideoDesc_Model(params,
                                           type=params['MODEL_TYPE'],
                                           verbose=params['VERBOSE'],
@@ -108,7 +107,7 @@ def train_model(params):
                     video_model = transferWeights(old_model, video_model, params['LAYERS_MAPPING'][i])
                 video_model.setOptimizer()
                 params['RELOAD'] = 0
-        else: # resume from previously trained model
+        else:  # resume from previously trained model
             video_model = loadModel(params['PRE_TRAINED_MODEL_STORE_PATHS'], params['RELOAD'])
             video_model.params['LR'] = params['LR']
             video_model.setOptimizer()
@@ -122,8 +121,8 @@ def train_model(params):
 
 
     ########### Test model saving/loading functions
-    #saveModel(video_model, params['RELOAD'])
-    #video_model = loadModel(params['STORE_PATH'], params['RELOAD'])
+    # saveModel(video_model, params['RELOAD'])
+    # video_model = loadModel(params['STORE_PATH'], params['RELOAD'])
     ###########
 
 
@@ -143,7 +142,7 @@ def train_model(params):
                        'eval_on_sets': params['EVAL_ON_SETS_KERAS'], 'n_parallel_loaders': params['PARALLEL_LOADERS'],
                        'extra_callbacks': callbacks, 'reload_epoch': params['RELOAD'], 'epoch_offset': params['RELOAD'],
                        'data_augmentation': params['DATA_AUGMENTATION'],
-                       'patience': params.get('PATIENCE', 0),# early stopping parameters
+                       'patience': params.get('PATIENCE', 0),  # early stopping parameters
                        'metric_check': params.get('STOP_METRIC', None),
                        'eval_on_epochs': params.get('EVAL_EACH_EPOCHS', True),
                        'each_n_epochs': params.get('EVAL_EACH', 1),
@@ -161,7 +160,7 @@ def apply_Video_model(params):
     """
         Function for using a previously trained model for sampling.
     """
-    
+
     ########### Load data
     dataset = build_dataset(params)
     if not '-vidtext-embed' in params['DATASET_NAME']:
@@ -169,14 +168,14 @@ def apply_Video_model(params):
     else:
         params['OUTPUT_VOCABULARY_SIZE'] = dataset.vocabulary_len[params['INPUTS_IDS_DATASET'][1]]
     ###########
-    
-    
+
+
     ########### Load model
     video_model = loadModel(params['STORE_PATH'], params['SAMPLING_RELOAD_POINT'],
                             reload_epoch=params['SAMPLING_RELOAD_EPOCH'])
     video_model.setOptimizer()
     ###########
-    
+
 
     ########### Apply sampling
     extra_vars = dict()
@@ -199,14 +198,19 @@ def apply_Video_model(params):
         if params['BEAM_SEARCH']:
             params_prediction['beam_size'] = params['BEAM_SIZE']
             params_prediction['maxlen'] = params['MAX_OUTPUT_TEXT_LEN_TEST']
-            params_prediction['optimized_search'] = params['OPTIMIZED_SEARCH'] and '-upperbound' not in params['DATASET_NAME']
+            params_prediction['optimized_search'] = params['OPTIMIZED_SEARCH'] and '-upperbound' not in params[
+                'DATASET_NAME']
             params_prediction['model_inputs'] = params['INPUTS_IDS_MODEL']
             params_prediction['model_outputs'] = params['OUTPUTS_IDS_MODEL']
             params_prediction['dataset_inputs'] = params['INPUTS_IDS_DATASET']
             params_prediction['dataset_outputs'] = params['OUTPUTS_IDS_DATASET']
             params_prediction['normalize'] = params['NORMALIZE_SAMPLING']
             params_prediction['alpha_factor'] = params['ALPHA_FACTOR']
-            params_prediction['temporally_linked'] = '-linked' in params['DATASET_NAME'] and '-upperbound' not in params['DATASET_NAME'] and '-video' not in params['DATASET_NAME']
+            params_prediction['temporally_linked'] = '-linked' in params['DATASET_NAME'] and '-upperbound' not in \
+                                                                                             params[
+                                                                                                 'DATASET_NAME'] and '-video' not in \
+                                                                                                                     params[
+                                                                                                                         'DATASET_NAME']
             predictions = video_model.predictBeamSearchNet(dataset, params_prediction)[s]
             predictions = decode_predictions_beam_search(predictions, vocab, verbose=params['VERBOSE'])
         else:
@@ -214,12 +218,11 @@ def apply_Video_model(params):
             predictions = decode_predictions(predictions, 1, vocab, params['SAMPLING'], verbose=params['VERBOSE'])
 
         # Store result
-        filepath = video_model.model_path+'/'+ s +'_sampling.pred' # results file
+        filepath = video_model.model_path + '/' + s + '_sampling.pred'  # results file
         if params['SAMPLING_SAVE_MODE'] == 'list':
             list2file(filepath, predictions)
         else:
             raise Exception, 'Only "list" is allowed in "SAMPLING_SAVE_MODE"'
-
 
         # Evaluate if any metric in params['METRICS']
         for metric in params['METRICS']:
@@ -276,64 +279,66 @@ def buildCallbacks(params, model, dataset):
             extra_vars['n_classes'] = len(dataset.dic_classes[params['OUTPUTS_IDS_DATASET'][0]].values())
             for s in params['EVAL_ON_SETS']:
                 extra_vars[s] = dict()
-                extra_vars[s]['references'] = eval('dataset.Y_'+s+'["'+params['OUTPUTS_IDS_DATASET'][0]+'"]')
+                extra_vars[s]['references'] = eval('dataset.Y_' + s + '["' + params['OUTPUTS_IDS_DATASET'][0] + '"]')
 
         if params['BEAM_SEARCH']:
             extra_vars['beam_size'] = params.get('BEAM_SIZE', 6)
-            extra_vars['state_below_index'] =  params.get('BEAM_SEARCH_COND_INPUT', -1)
+            extra_vars['state_below_index'] = params.get('BEAM_SEARCH_COND_INPUT', -1)
             extra_vars['maxlen'] = params.get('MAX_OUTPUT_TEXT_LEN_TEST', 30)
-            extra_vars['optimized_search'] = params.get('OPTIMIZED_SEARCH', True) and '-upperbound' not in params['DATASET_NAME']
+            extra_vars['optimized_search'] = params.get('OPTIMIZED_SEARCH', True) and '-upperbound' not in params[
+                'DATASET_NAME']
             extra_vars['model_inputs'] = params['INPUTS_IDS_MODEL']
             extra_vars['model_outputs'] = params['OUTPUTS_IDS_MODEL']
             extra_vars['dataset_inputs'] = params['INPUTS_IDS_DATASET']
             extra_vars['dataset_outputs'] = params['OUTPUTS_IDS_DATASET']
-            extra_vars['normalize'] =  params.get('NORMALIZE_SAMPLING', False)
-            extra_vars['alpha_factor'] =  params.get('ALPHA_FACTOR', 1.)
-            extra_vars['temporally_linked'] = '-linked' in params['DATASET_NAME'] and '-upperbound' not in params['DATASET_NAME'] and '-video' not in params['DATASET_NAME']
+            extra_vars['normalize'] = params.get('NORMALIZE_SAMPLING', False)
+            extra_vars['alpha_factor'] = params.get('ALPHA_FACTOR', 1.)
+            extra_vars['temporally_linked'] = '-linked' in params['DATASET_NAME'] and '-upperbound' not in params[
+                'DATASET_NAME'] and '-video' not in params['DATASET_NAME']
             input_text_id = None
             vocab_src = None
 
             callback_metric = EvalPerformance(model,
-                                               dataset,
-                                               gt_id=params['OUTPUTS_IDS_DATASET'][0],
-                                               metric_name=params['METRICS'],
-                                               set_name=params['EVAL_ON_SETS'],
-                                               batch_size=params['BATCH_SIZE'],
-                                               each_n_epochs=params['EVAL_EACH'],
-                                               extra_vars=extra_vars,
-                                               reload_epoch=params['RELOAD'],
-                                               is_text=True,
-                                               input_text_id=input_text_id,
-                                               index2word_y=vocab,
-                                               index2word_x=vocab_src,
-                                               sampling_type=params['SAMPLING'],
-                                               beam_search=params['BEAM_SEARCH'],
-                                               save_path=model.model_path,
-                                               start_eval_on_epoch=params['START_EVAL_ON_EPOCH'],
-                                               write_samples=True,
-                                               write_type=params['SAMPLING_SAVE_MODE'],
-                                               eval_on_epochs=params['EVAL_EACH_EPOCHS'],
-                                               save_each_evaluation=params['SAVE_EACH_EVALUATION'],
-                                               verbose=params['VERBOSE'])
+                                              dataset,
+                                              gt_id=params['OUTPUTS_IDS_DATASET'][0],
+                                              metric_name=params['METRICS'],
+                                              set_name=params['EVAL_ON_SETS'],
+                                              batch_size=params['BATCH_SIZE'],
+                                              each_n_epochs=params['EVAL_EACH'],
+                                              extra_vars=extra_vars,
+                                              reload_epoch=params['RELOAD'],
+                                              is_text=True,
+                                              input_text_id=input_text_id,
+                                              index2word_y=vocab,
+                                              index2word_x=vocab_src,
+                                              sampling_type=params['SAMPLING'],
+                                              beam_search=params['BEAM_SEARCH'],
+                                              save_path=model.model_path,
+                                              start_eval_on_epoch=params['START_EVAL_ON_EPOCH'],
+                                              write_samples=True,
+                                              write_type=params['SAMPLING_SAVE_MODE'],
+                                              eval_on_epochs=params['EVAL_EACH_EPOCHS'],
+                                              save_each_evaluation=params['SAVE_EACH_EVALUATION'],
+                                              verbose=params['VERBOSE'])
         else:
             callback_metric = EvalPerformance(model,
-                                             dataset,
-                                             gt_id=params['OUTPUTS_IDS_DATASET'][0],
-                                             metric_name=params['METRICS'],
-                                             set_name=params['EVAL_ON_SETS'],
-                                             batch_size=params['BATCH_SIZE'],
-                                             each_n_epochs=params['EVAL_EACH'],
-                                             extra_vars=extra_vars,
-                                             reload_epoch=params['RELOAD'],
-                                             save_path=model.model_path,
-                                             start_eval_on_epoch=params[
-                                                 'START_EVAL_ON_EPOCH'],
-                                             write_samples=True,
-                                             write_type=params['SAMPLING_SAVE_MODE'],
-                                             eval_on_epochs=params['EVAL_EACH_EPOCHS'],
-                                             save_each_evaluation=params[
-                                                 'SAVE_EACH_EVALUATION'],
-                                             verbose=params['VERBOSE'])
+                                              dataset,
+                                              gt_id=params['OUTPUTS_IDS_DATASET'][0],
+                                              metric_name=params['METRICS'],
+                                              set_name=params['EVAL_ON_SETS'],
+                                              batch_size=params['BATCH_SIZE'],
+                                              each_n_epochs=params['EVAL_EACH'],
+                                              extra_vars=extra_vars,
+                                              reload_epoch=params['RELOAD'],
+                                              save_path=model.model_path,
+                                              start_eval_on_epoch=params[
+                                                  'START_EVAL_ON_EPOCH'],
+                                              write_samples=True,
+                                              write_type=params['SAMPLING_SAVE_MODE'],
+                                              eval_on_epochs=params['EVAL_EACH_EPOCHS'],
+                                              save_each_evaluation=params[
+                                                  'SAVE_EACH_EVALUATION'],
+                                              verbose=params['VERBOSE'])
 
         callbacks.append(callback_metric)
 
@@ -355,7 +360,8 @@ def buildCallbacks(params, model, dataset):
             extra_vars['dataset_outputs'] = params['OUTPUTS_IDS_DATASET']
             extra_vars['normalize'] = params['NORMALIZE_SAMPLING']
             extra_vars['alpha_factor'] = params['ALPHA_FACTOR']
-            extra_vars['temporally_linked'] = '-linked' in params['DATASET_NAME'] and '-upperbound' not in params['DATASET_NAME'] and '-video' not in params['DATASET_NAME']
+            extra_vars['temporally_linked'] = '-linked' in params['DATASET_NAME'] and '-upperbound' not in params[
+                'DATASET_NAME'] and '-video' not in params['DATASET_NAME']
 
         callback_sampling = Sample(model,
                                    dataset,
@@ -376,7 +382,6 @@ def buildCallbacks(params, model, dataset):
         callbacks.append(callback_sampling)
 
     return callbacks
-
 
 
 def check_params(params):

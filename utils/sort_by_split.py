@@ -1,14 +1,13 @@
 # Retrieves the images of a given split and sorts them according to that split
 import shutil
+
 from common import create_dir_if_not_exists
 
 image_dir = '/data/DATASETS/Flickr8k/Images'
 annotatios_dir = '/data/DATASETS/Flickr8k/Annotations'
 split_name = 'val'
-dest_dir = image_dir + '/' +  split_name + '_images'
+dest_dir = image_dir + '/' + split_name + '_images'
 ext = '.jpg'
-
-
 
 with open(annotatios_dir + '/' + split_name + '_list_ids.txt') as f:
     lines = f.readlines()

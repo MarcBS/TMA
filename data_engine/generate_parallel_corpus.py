@@ -4,7 +4,6 @@ Generates a parallel corpus from the EDUB-GT Annotations:
     The other language is the previous caption of each sentence.
 """
 
-
 base_path = '/media/HDD_2TB/DATASETS/EDUB-SegDesc/GT/'
 
 txt_files = base_path + 'text.clean.txt'
@@ -12,13 +11,12 @@ dest_files = base_path + 'training.'
 
 file = open(txt_files, mode='r')
 
-file_prevs = open(dest_files+'prev', mode='w')
-file_curr = open(dest_files+'curr', mode='w')
-
+file_prevs = open(dest_files + 'prev', mode='w')
+file_curr = open(dest_files + 'curr', mode='w')
 
 prev_id = 'Segment1'
 caps_txt = []
-prev_caps =['None']
+prev_caps = ['None']
 i = 0
 for line in file:
     id_text = line.split(",")
