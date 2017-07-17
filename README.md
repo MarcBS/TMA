@@ -4,8 +4,8 @@ This repository contains the code for building the Temporally-linked Multi-input
 the work [Egocentric Video Description based on Temporally-Linked Sequences](), 
 submitted to the [Journal of Visual Communication and Image Representation](https://www.journals.elsevier.com/journal-of-visual-communication-and-image-representation). 
 With this module, you can replicate our experiments and easily deploy new models. TMA is built upon our fork of 
-[Keras](https://github.com/MarcBS/keras) framework, tested for the [Theano](http://deeplearning.net/software/theano)
-backend for the [version 1.2 of Keras](https://github.com/MarcBS/keras/tree/Keras-1.2-(stable)).
+[Keras](https://github.com/MarcBS/keras) framework ([version 1.2](https://github.com/MarcBS/keras/tree/Keras-1.2-(stable))) and tested for the [Theano](http://deeplearning.net/software/theano)
+backend.
 
 ## Features: 
 
